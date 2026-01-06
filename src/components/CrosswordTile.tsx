@@ -12,7 +12,7 @@ interface Props {
 }
 
 /**
- * 
+ * Individual Crossword Tile used with Crossword Grid to make a crossword puzzle
  */
 const CrosswordTile = forwardRef(({
     data,

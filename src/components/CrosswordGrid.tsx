@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import type { CrosswordTileRef } from "../types/refs";
-import type { CrosswordData, CrosswordGridAction } from "../types/types";
+import type { CrosswordHintRef, CrosswordTileRef } from "../types/refs";
+import type { CrosswordData, CrosswordGridAction, WordDirection } from "../types/types";
 import { getColumnIndices, getRowIndices, getTileClasses, LARGE_TILE_SIZE } from "../utils/crossword";
+import CrosswordHint from "./CrosswordHint";
 import CrosswordTile from "./CrosswordTile";
 
 interface Props {
@@ -22,13 +23,21 @@ const CrosswordGrid = ({
         height,
         across,
         down,
-        acrossHints,
-        downHints
     } = data;
     const [canEdit, setCanEdit] = useState<boolean>(true);
-    const [direction, setDirection] = useState<"across" | "down">("across");
-    const tileRefs = useRef<CrosswordTileRef[]>([]);
-    const highlightedTileIndices = useRef<number[]>([]);
+    const [direction, setDirection] = useState<WordDirection>("across"); // Whether to highlight across or down when clicking on a selected tile
+    const [selectedWord, setSelectedWord] = useState<{ 
+        type: WordDirection, 
+        index: number 
+    }>({
+        type: "across",
+        index: 0
+    });
+    const acrossHintRefs = useRef<CrosswordHintRef[]>([]); // Refs to crossword hints
+    const downHintRefs = useRef<CrosswordHintRef[]>([]); // Refs to crossword hints
+    const tileRefs = useRef<CrosswordTileRef[]>([]); // Refs to crossword tiles
+    const highlightedTileIndices = useRef<number[]>([]); // Refs of what tiles are highlighted to make it easier to remove the highlighting
+    const lastHighlightedHint = useRef<{ direction: WordDirection, index: number }>(null);
     /**
      * Highlight across or down tiles
      */
@@ -99,6 +108,7 @@ const CrosswordGrid = ({
         }
         highlightedTileIndices.current = [...indices];
         setDirection("across");
+        highlightHint("across", acrossIndex);
     }
     /**
      * Highlight all tiles that belong to the word down
@@ -127,6 +137,36 @@ const CrosswordGrid = ({
         }
         highlightedTileIndices.current = [...indices];
         setDirection("down");
+        highlightHint("down", downIndex);
+    }
+    /**
+     * Highlights the specific crossword hint
+     * @param direction whether to highlight an across or down word hint
+     * @param id number associated with word
+     */
+    const highlightHint = (direction: WordDirection, id: number) => {
+        const refs = direction === "across" ? acrossHintRefs.current : downHintRefs.current;
+        if (lastHighlightedHint.current) {
+            const { direction, index } = lastHighlightedHint.current;
+            if (direction === "across") {
+                acrossHintRefs.current[index].unhighlight();
+            } else {
+                downHintRefs.current[index].unhighlight();
+            }
+        }
+        let hintIndex = 0;
+        for (const hint of refs) {
+            const index = hint.getIndex();
+            if (index === id) {
+                hint.highlight();
+                break;
+            }
+            hintIndex++;
+        }
+        lastHighlightedHint.current = {
+            direction: direction,
+            index: hintIndex
+        }
     }
     /**
      * Function handler for 
@@ -157,14 +197,20 @@ const CrosswordGrid = ({
                 const across = tiles[i].across;
                 if (across > 0) {
                     highlightAcross(i);
-                    return;
+                    break;
                 }
             }
+            highlightHint("across", 1);
         }
         highlightFirstAcross();
     }, []);
     return (
-        <div className="p-4 select-none">
+        <div 
+            className="p-6 select-none border border-black"
+            onKeyDown={() => {
+
+            }}
+        >
             <div className="flex flex-row gap-8">
                 <div className="flex flex-col gap-1 leading-0">
                     <h2 className="text-lg font-bold">{title}</h2>
@@ -197,25 +243,47 @@ const CrosswordGrid = ({
                     </div>
                 </div>
                 <div className="flex flex-col gap-2">
-                    <section>
+                    <section className="flex flex-col">
                         <h2 className="text-lg font-bold">Across</h2>
-                        {[...acrossHints.entries()].map(([row, hint]) => {
+                        {[...across.entries()].map(([row, data], index) => {
+                            const { hint, startIndex } = data;
                             const key = `across-${row}`;
                             return (
-                                <div key={key}>
-                                    {row}. {hint}
-                                </div>
+                                <CrosswordHint 
+                                    key={key}
+                                    index={row}
+                                    hint={hint}
+                                    ref={(el) => {
+                                        if (el) {
+                                            acrossHintRefs.current[index] = el;
+                                        }
+                                    }}
+                                    onClick={() => {
+                                        highlightAcross(startIndex);
+                                    }}
+                                />
                             );
                         })}
                     </section>
-                    <section>
+                    <section className="flex flex-col">
                         <h2 className="text-lg font-bold">Down</h2>
-                        {[...downHints.entries()].map(([row, hint]) => {
-                            const key = `down-${row}`;
+                        {[...down.entries()].map(([col, data], index) => {
+                            const { hint, startIndex } = data;
+                            const key = `down-${col}`;
                             return (
-                                <div key={key}>
-                                    {row}. {hint}
-                                </div>
+                                <CrosswordHint 
+                                    key={key}
+                                    index={col}
+                                    hint={hint}
+                                    ref={(el) => {
+                                        if (el) {
+                                            downHintRefs.current[index] = el;
+                                        }
+                                    }}
+                                    onClick={() => {
+                                        highlightDown(startIndex);
+                                    }}
+                                />
                             );
                         })}
                     </section>

@@ -2,6 +2,7 @@ export interface CrosswordGridAction {
     action: CrosswordGridActions;
     parameter: any;
 }
+export type WordDirection = "across" | "down";
 export type CrosswordGridActions = "highlightAcross" | "highlightDown" | "highlight" | "type";
 export type CrosswordTileState = 
     "idle" | 
@@ -14,10 +15,13 @@ export interface CrosswordData {
     tiles: CrosswordLetter[]; // Tile Data
     width: number; // Crossword width (in tiles)
     height: number; // Crossword height (in tiles)
-    across: Map<number, string>; // List of across words
-    down: Map<number, string>; // List of down words
-    acrossHints: Map<number, string>; // Hints for across words
-    downHints: Map<number, string>; // Hints for down words
+    across: Map<number, WordData>; // List of across words
+    down: Map<number, WordData>; // List of down words
+}
+export interface WordData {
+    word: string;
+    hint: string;
+    startIndex: number;
 }
 export interface CrosswordLetter {
     type: "word" | "background"; // Whether the tile is interactable or not part of the puzzle

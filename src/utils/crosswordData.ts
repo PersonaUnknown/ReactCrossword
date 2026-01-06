@@ -33,32 +33,84 @@ export const exampleCrossword: CrosswordData = {
         { "type": "word", "character": "T", "cornerValue": -1, "across": 9, "down": -1 },
     ],
     "across": new Map([
-        [1, "STAR"],
-        [5, "IDEA"],
-        [7, "BRAIN"],
-        [8, "YEGG"],
-        [9, "DENT"],
+        [
+            1, {
+                word: "STAR",
+                hint: "Sun, e.g.",
+                startIndex: 0
+            }
+        ],
+        [
+            5, {
+                word: "IDEA",
+                hint: "Thought",
+                startIndex: 6
+            }
+        ],
+        [
+            7, {
+                word: "BRAIN",
+                hint: "Scarecrow's wish in \"The Wizard of Oz\"",
+                startIndex: 10
+            }
+        ],
+        [
+            8, {
+                word: "YEGG",
+                hint: "Burglar",
+                startIndex: 15
+            }
+        ],
+        [
+            9, {
+                word: "DENT",
+                hint: "Damage to a car",
+                startIndex: 21
+            }
+        ]
     ]),
     "down": new Map([
-        [2, "TIRED"],
-        [3, "ADAGE"],
-        [4, "REIGN"],
-        [6, "AN"],
-        [7, "BY"],
+        [
+            2, {
+                word: "TIRED",
+                hint: "Weary",
+                startIndex: 1,
+            }
+        ],
+        [
+            2, {
+                word: "TIRED",
+                hint: "Weary",
+                startIndex: 1,
+            }
+        ],
+        [
+            3, {
+                word: "ADAGE",
+                hint: "\"Time is money\", e.g.",
+                startIndex: 2,
+            }
+        ],
+        [
+            4, {
+                word: "REIGN",
+                hint: "Sovereignty",
+                startIndex: 3,
+            }
+        ],
+        [
+            6, {
+                word: "AN",
+                hint: "Indefinite article",
+                startIndex: 9,
+            }
+        ],
+        [
+            7, {
+                word: "BY",
+                hint: "Hard to come __",
+                startIndex: 10,
+            }
+        ],
     ]),
-    "acrossHints": new Map([
-        [1, "Sun, e.g."],
-        [5, "Thought"],
-        [7, "Scarecrow's wish in \"The Wizard of Oz\""],
-        [8, "Burglar"],
-        [9, "Damage to a car"],
-    ]),
-    "downHints": new Map([
-        [2, "Weary"],
-        [3, "\"Time is money\", e.g."],
-        [4, "Sovereignty"],
-        [6, "Indefinite article"],
-        [7, "Hard to come __"],
-    ])
-}
-
+};

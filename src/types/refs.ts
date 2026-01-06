@@ -8,3 +8,8 @@ export type CrosswordTileRef = {
     updateState: (newState: CrosswordTileState) => void;
     getState : () => CrosswordTileState;
 }
+export type CrosswordHintRef = {
+    highlight: () => void; // Highlight hint
+    unhighlight: () => void; // Unhighlights hint
+    getIndex: () => number;
+}
