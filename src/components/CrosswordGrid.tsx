@@ -226,6 +226,9 @@ const CrosswordGrid = ({
                 highlight(currSelectedTileIndex);
                 break;
             default:
+                if (!canEdit) {
+                    return;
+                }
                 if (key.length === 1 && /[a-zA-Z]/.test(key)) {
                     type(key);
                 }
@@ -385,11 +388,14 @@ const CrosswordGrid = ({
         return true;
     }, []);
     useEffect(() => {
+        if (!canEdit) {
+            return;
+        }
         if (checkForWin()) {
             alert("You Won!");
             setCanEdit(false);
         }
-    }, [wordStatuses, checkForWin]);
+    }, [wordStatuses, canEdit, checkForWin]);
     return (
         <div 
             className="p-6 select-none border border-black"
