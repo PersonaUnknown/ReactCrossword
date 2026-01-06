@@ -28,6 +28,12 @@ const CrosswordHint = forwardRef(({
     const unhighlight = () => {
         setBackgroundColor("#ffffff");
     }
+    const onCorrect = () => {
+
+    }
+    const onIncorrect = () => {
+        
+    }
     /**
      * Getter Functions
      */

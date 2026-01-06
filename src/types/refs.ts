@@ -9,6 +9,7 @@ export type CrosswordTileRef = {
     getState : () => CrosswordTileState;
     updateChar: (char: string) => void;
     getChar: () => string;
+    checkTile: (char: string) => void;
 }
 export type CrosswordHintRef = {
     highlight: () => void; // Highlight hint

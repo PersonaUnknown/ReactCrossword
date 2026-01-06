@@ -244,7 +244,15 @@ const CrosswordGrid = ({
             return;
         }
         highlight(getIndexPostTyping(data, direction, getCurrentSelectedTileIndex()));
+        // TODO: 3. Check if the word is fully typed out and is correct
+        tileRefs.current[currSelectedTileIndex].checkTile(char);
     }   
+    /**
+     * Check if current highlighted word is correct
+     */
+    const checkWordCorrect = (): boolean => {
+        return false;
+    }
     /**
      * Get index of current tile selected (-1 if cannot be found)
      */

@@ -2,7 +2,7 @@ import { forwardRef,useImperativeHandle, useState, type Ref } from "react";
 import { twMerge } from "tailwind-merge";
 import type { CrosswordTileRef } from "../types/refs";
 import type { CrosswordGridAction, CrosswordLetter, CrosswordTileState } from "../types/types";
-import { DARK_HIGHLIGHT_TILE_COLOR, LARGE_TILE_SIZE, LIGHT_HIGHLIGHT_TILE_COLOR } from "../utils/crossword";
+import { DARK_HIGHLIGHT_TILE_COLOR, INCORRECT_TEXT_COLOR, LARGE_TILE_SIZE, LIGHT_HIGHLIGHT_TILE_COLOR } from "../utils/crossword";
 
 interface Props {
     data: CrosswordLetter;
@@ -31,6 +31,7 @@ const CrosswordTile = forwardRef(({
     } = data;
     const [state, setState] = useState<CrosswordTileState>("idle");
     const [backgroundColor, setBackgroundColor] = useState<string>("#ffffff");
+    const [textColor, setTextColor] = useState<string>("#000000");
     const [currChar, setCurrChar] = useState<string>("");
     /**
      * Handle highlighting / selecting tile + word
@@ -51,10 +52,16 @@ const CrosswordTile = forwardRef(({
         setBackgroundColor("#ffffff");
     }
     /**
-     * Checks if the current character matches the character it's supposed to be
+     * Checks if the current character matches the character it's supposed to be.
+     * Highlights the text color if it's correct or not
      */
-    const checkTile = () => {
-        return currChar === character;
+    const checkTile = (char: string) => {
+        const parsedChar = char.toUpperCase();
+        if (parsedChar.length > 0 && parsedChar !== character) {
+            setTextColor(INCORRECT_TEXT_COLOR);
+        } else {
+            setTextColor("#000000");
+        }
     }
     /**
      * Getter Methods
@@ -89,6 +96,7 @@ const CrosswordTile = forwardRef(({
         getState: getState,
         updateChar: updateChar,
         getChar: getChar,
+        checkTile: checkTile
     }));
     /* 
      * Render black tile if tile is not associated with a character / word.
@@ -128,7 +136,7 @@ const CrosswordTile = forwardRef(({
             <div className="absolute text-lg top-0 left-1">
                 {cornerValue < 0 ? "" : cornerValue}
             </div>
-            <div className="text-4xl">
+            <div className="text-4xl" style={{ color: textColor }}>
                 {currChar}
             </div>
         </button>
