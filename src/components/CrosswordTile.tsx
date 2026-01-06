@@ -39,14 +39,7 @@ const CrosswordTile = forwardRef(({
         handleAction({ action: "highlight", parameter: index });
     }
     /**
-     * Update tile state
-     * @param newState new state of tile
-     */
-    const updateState = (newState: CrosswordTileState) => {
-        setState(newState);
-    }
-    /**
-     * Highlight the tile either darkly or lightly
+     * Highlight tiles differently
      */
     const darkHighlight = () => {
         setBackgroundColor(DARK_HIGHLIGHT_TILE_COLOR);
@@ -54,9 +47,6 @@ const CrosswordTile = forwardRef(({
     const lightHighlight = () => {
         setBackgroundColor(LIGHT_HIGHLIGHT_TILE_COLOR);
     }
-    /**
-     * Remove the highlight from the tile
-     */
     const removeHighlight = () =>{
         setBackgroundColor("#ffffff");
     }
@@ -72,6 +62,20 @@ const CrosswordTile = forwardRef(({
     const getAcrossWordIndex = () => { return across; }
     const getDownWordIndex = () => { return down; }
     const getState = () => { return state; }
+    const getChar = () => { return currChar; }
+    /**
+     * Setter Methods
+     */
+    const updateState = (newState: CrosswordTileState) => {
+        setState(newState);
+    }
+    const updateChar = (char: string) => {
+        if (char.length === 0) {
+            setCurrChar("");
+        } else {
+            setCurrChar(char.charAt(0));
+        }
+    }
     /**
      * CrosswordTileRef handler
      */
@@ -82,11 +86,13 @@ const CrosswordTile = forwardRef(({
         getAcrossWordIndex: getAcrossWordIndex,
         getDownWordIndex: getDownWordIndex,
         updateState: updateState,
-        getState: getState
+        getState: getState,
+        updateChar: updateChar,
+        getChar: getChar,
     }));
     /* 
      * Render black tile if tile is not associated with a character / word.
-     * NOTE: Uses inline-block align-bottom to ensure black tile aligns with other tiles
+     * NOTE: Uses inline-block align-bottom to ensure black tile and tiles with leters in them aligns with other tiles
      */
     if (type === "background") {
         return (
@@ -108,7 +114,7 @@ const CrosswordTile = forwardRef(({
     return (
         <button 
             className={twMerge(
-                "cursor-pointer aspect-square inline-flex relative items-center justify-center",
+                "cursor-pointer aspect-square inline-flex relative items-center justify-center align-bottom",
                 className
             )}
             style={{

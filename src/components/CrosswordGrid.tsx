@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { CrosswordHintRef, CrosswordTileRef } from "../types/refs";
 import type { CrosswordData, CrosswordGridAction, WordDirection } from "../types/types";
-import { getColumnIndices, getRowIndices, getTileClasses, LARGE_TILE_SIZE } from "../utils/crossword";
+import { getColumnIndices, getIndexAbove, getIndexBelow, getIndexLeft, getIndexPostTyping, getIndexRight, getNextWordIndex, getRowIndices, getTileClasses, LARGE_TILE_SIZE } from "../utils/crossword";
 import CrosswordHint from "./CrosswordHint";
 import CrosswordTile from "./CrosswordTile";
 
@@ -26,13 +26,6 @@ const CrosswordGrid = ({
     } = data;
     const [canEdit, setCanEdit] = useState<boolean>(true);
     const [direction, setDirection] = useState<WordDirection>("across"); // Whether to highlight across or down when clicking on a selected tile
-    const [selectedWord, setSelectedWord] = useState<{ 
-        type: WordDirection, 
-        index: number 
-    }>({
-        type: "across",
-        index: 0
-    });
     const acrossHintRefs = useRef<CrosswordHintRef[]>([]); // Refs to crossword hints
     const downHintRefs = useRef<CrosswordHintRef[]>([]); // Refs to crossword hints
     const tileRefs = useRef<CrosswordTileRef[]>([]); // Refs to crossword tiles
@@ -41,19 +34,34 @@ const CrosswordGrid = ({
     /**
      * Highlight across or down tiles
      */
-    const highlight = (index: number) => {
+    const highlight = (index: number, targetDirection: WordDirection | null = null) => {
         const selectedTileState = tileRefs.current[index].getState();
         const acrossIndex = tileRefs.current[index].getAcrossWordIndex();
         const downIndex = tileRefs.current[index].getDownWordIndex();
         switch (selectedTileState) {
             case "idle":
+                if (targetDirection === "across") {
+                    if (across.has(acrossIndex)) {
+                        highlightAcross(index);
+                    } else {
+                        highlightDown(index);
+                    }
+                    return;
+                } else if (targetDirection === "down") {
+                    if (down.has(downIndex)) {
+                        highlightDown(index);
+                    } else {
+                        highlightAcross(index);
+                    }
+                    return;
+                }
                 if (direction === "across") {
                     if (across.has(acrossIndex)) {
                         highlightAcross(index);
                     } else {
                         highlightDown(index);
                     }
-                } else {
+                } else if (direction === "down") {
                     if (down.has(downIndex)) {
                         highlightDown(index);
                     } else {
@@ -149,10 +157,11 @@ const CrosswordGrid = ({
         if (lastHighlightedHint.current) {
             const { direction, index } = lastHighlightedHint.current;
             if (direction === "across") {
-                acrossHintRefs.current[index].unhighlight();
-            } else {
-                downHintRefs.current[index].unhighlight();
+                acrossHintRefs?.current[index]?.unhighlight();
+            } else if (direction === "down") {
+                downHintRefs?.current[index]?.unhighlight();
             }
+            lastHighlightedHint.current = null;
         }
         let hintIndex = 0;
         for (const hint of refs) {
@@ -167,6 +176,87 @@ const CrosswordGrid = ({
             direction: direction,
             index: hintIndex
         }
+    }
+    /**
+     * Type character into tile and move the selection to a new tile that has no character in it.
+     * preventDefault called to stop propagation of event to CrosswordTiles.
+     * @param index tile index to change
+     * @param char input character
+     */
+    const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+        const key = e.key;
+        const currSelectedTileIndex = getCurrentSelectedTileIndex();
+        switch (key) {
+            case "Tab":
+            case "Enter":
+                const index = direction === "across" ? 
+                    tileRefs.current[currSelectedTileIndex].getAcrossWordIndex() :
+                    tileRefs.current[currSelectedTileIndex].getDownWordIndex();
+                const nextWordIndexData = getNextWordIndex(data, direction, index);
+                highlight(nextWordIndexData.index, nextWordIndexData.direction);
+                break;
+            case "ArrowUp":
+                highlight(getIndexAbove(data, currSelectedTileIndex));
+                break;
+            case "ArrowDown":
+                highlight(getIndexBelow(data, currSelectedTileIndex));
+                break;
+            case "ArrowLeft":
+                highlight(getIndexLeft(data, currSelectedTileIndex));
+                break;
+            case "ArrowRight":
+                highlight(getIndexRight(data, currSelectedTileIndex));
+                break;
+            case "Backspace":
+                if (tileRefs.current[currSelectedTileIndex].getChar() === "") {
+                    highlight(getIndexLeft(data, currSelectedTileIndex));
+                } else {
+                    type("");
+                }
+                break;
+            case "Delete":
+                type("");
+                break;
+            case " ":
+                if (currSelectedTileIndex === undefined) {
+                    return;
+                }
+                highlight(currSelectedTileIndex);
+                break;
+            default:
+                if (key.length === 1 && /[a-zA-Z]/.test(key)) {
+                    type(key);
+                }
+                break;
+        }
+        e.preventDefault();
+    }
+    const type = (char: string) => {
+        // 1. Type in the current
+        const parsedChar = char.toUpperCase();
+        const currSelectedTileIndex = getCurrentSelectedTileIndex();
+        if (currSelectedTileIndex < 0 && currSelectedTileIndex >= tileRefs.current.length) {
+            return;
+        } 
+        tileRefs.current[currSelectedTileIndex].updateChar(parsedChar);
+        // 2. Move the selection to a new 
+        if (char === "") {
+            return;
+        }
+        highlight(getIndexPostTyping(data, direction, getCurrentSelectedTileIndex()));
+    }   
+    /**
+     * Get index of current tile selected (-1 if cannot be found)
+     */
+    const getCurrentSelectedTileIndex = (): number => {
+        const currSelectedTileIndex = highlightedTileIndices.current.find(index => {
+            const state = tileRefs.current[index].getState();
+            return state === "selected-across" || state === "selected-down";
+        });
+        if (currSelectedTileIndex === undefined) {
+            return -1;
+        }
+        return currSelectedTileIndex;
     }
     /**
      * Function handler for 
@@ -184,7 +274,7 @@ const CrosswordGrid = ({
             case "highlight":
                 highlight(parameter);
                 break;
-            case "type":
+            default:
                 break;
         }
     }
@@ -207,9 +297,9 @@ const CrosswordGrid = ({
     return (
         <div 
             className="p-6 select-none border border-black"
-            onKeyDown={() => {
-
-            }}
+            role="application"
+            tabIndex={0}
+            onKeyDown={onKeyDown}
         >
             <div className="flex flex-row gap-8">
                 <div className="flex flex-col gap-1 leading-0">

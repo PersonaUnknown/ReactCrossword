@@ -2,6 +2,10 @@ export interface CrosswordGridAction {
     action: CrosswordGridActions;
     parameter: any;
 }
+export interface TypeParameters {
+    index: number;
+    char: string;
+}
 export type WordDirection = "across" | "down";
 export type CrosswordGridActions = "highlightAcross" | "highlightDown" | "highlight" | "type";
 export type CrosswordTileState = 

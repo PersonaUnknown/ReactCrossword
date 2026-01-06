@@ -7,6 +7,8 @@ export type CrosswordTileRef = {
     getDownWordIndex: () => number;
     updateState: (newState: CrosswordTileState) => void;
     getState : () => CrosswordTileState;
+    updateChar: (char: string) => void;
+    getChar: () => string;
 }
 export type CrosswordHintRef = {
     highlight: () => void; // Highlight hint
