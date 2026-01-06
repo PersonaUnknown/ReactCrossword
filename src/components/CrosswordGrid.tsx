@@ -32,6 +32,7 @@ const CrosswordGrid = ({
     const tileRefs = useRef<CrosswordTileRef[]>([]); // Refs to crossword tiles
     const highlightedTileIndices = useRef<number[]>([]); // Refs of what tiles are highlighted to make it easier to remove the highlighting
     const lastHighlightedHint = useRef<{ direction: WordDirection, index: number }>(null);
+    const statusesRef = useRef<WordStatus[]>([]);
     /**
      * Highlight across or down tiles
      */
@@ -244,6 +245,7 @@ const CrosswordGrid = ({
         tileRefs.current[currSelectedTileIndex].checkTile(char);
         const acrossIndex = tileRefs.current[currSelectedTileIndex].getAcrossWordIndex();
         const downIndex = tileRefs.current[currSelectedTileIndex].getDownWordIndex();
+        const newWordStatuses = [...statusesRef.current];
         if (acrossIndex !== -1) {
             let currAcrossWordTyped = "";
             const acrossTiles = tileRefs.current.filter(tile => tile.getAcrossWordIndex() === acrossIndex);
@@ -257,11 +259,14 @@ const CrosswordGrid = ({
             }
             const acrossWordData = across.get(acrossIndex);
             const acrossRef = acrossHintRefs.current.find(ref => ref.getIndex() === acrossIndex);
+            const statusIndex = newWordStatuses.findIndex(status => status.direction === "across" && status.id === acrossIndex);
             if (acrossWordData) {
                 if (currAcrossWordTyped === acrossWordData.word) {
                     acrossRef?.onCorrect();
+                    newWordStatuses[statusIndex].correct = true;
                 } else if (!currAcrossWordTyped.includes("_") && currAcrossWordTyped !== acrossWordData.word) {
                     acrossRef?.onIncorrect();
+                    newWordStatuses[statusIndex].correct = false;
                 }
             }
         }
@@ -278,14 +283,19 @@ const CrosswordGrid = ({
             }
             const downWordData = down.get(downIndex);
             const downRef = downHintRefs.current.find(ref => ref.getIndex() === downIndex);
+            const statusIndex = newWordStatuses.findIndex(status => status.direction === "down" && status.id === downIndex);
             if (downWordData) {
                 if (currDownWordTyped === downWordData.word) {
                     downRef?.onCorrect();
+                    newWordStatuses[statusIndex].correct = true;
                 } else if (!currDownWordTyped.includes("_") && currDownWordTyped !== downWordData.word) {
                     downRef?.onIncorrect();
+                    newWordStatuses[statusIndex].correct = false;
                 }
             }
         }
+        setWordStatuses(newWordStatuses);
+        statusesRef.current = newWordStatuses;
         // 3. Move the selection to a new 
         if (char === "") {
             return;
@@ -355,17 +365,19 @@ const CrosswordGrid = ({
                 });
             }
             setWordStatuses(statuses);
+            statusesRef.current = statuses;
         };
         highlightFirstAcross();
     }, []);
     /**
-     * Check for win condition every time the word statuses changes
+     * Check for win condition every time the word statuses changes.
+     * useState to trigger useEffect but useRef to get accurate value when checking
      */
     const checkForWin = useCallback((): boolean => {
-        if (wordStatuses.length === 0) {
+        if (statusesRef.current.length === 0) {
             return false;
         }
-        for (const status of wordStatuses) {
+        for (const status of statusesRef.current) {
             if (!status.correct) {
                 return false;
             }
