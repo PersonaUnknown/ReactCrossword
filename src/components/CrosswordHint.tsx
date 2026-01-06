@@ -1,6 +1,6 @@
 import { forwardRef, type Ref, useImperativeHandle, useState, } from "react";
 import type { CrosswordHintRef } from "../types/refs";
-import { LIGHT_HIGHLIGHT_TILE_COLOR } from "../utils/crossword";
+import { CORRECT_TEXT_COLOR, INCORRECT_TEXT_COLOR, LIGHT_HIGHLIGHT_TILE_COLOR } from "../utils/crossword";
 
 interface Props {
     index: number;
@@ -19,6 +19,7 @@ const CrosswordHint = forwardRef(({
     ref: Ref<CrosswordHintRef>
 ) => {
     const [backgroundColor, setBackgroundColor] = useState<string>("#ffffff");
+    const [textColor, setTextColor] = useState<string>("#000000");
     /**
      * Toggle highlighting or unhighlighting on hint background
      */
@@ -29,10 +30,13 @@ const CrosswordHint = forwardRef(({
         setBackgroundColor("#ffffff");
     }
     const onCorrect = () => {
-
+        setTextColor(CORRECT_TEXT_COLOR);
     }
     const onIncorrect = () => {
-        
+        setTextColor(INCORRECT_TEXT_COLOR);
+    }
+    const resetTextColor = () => {
+        setTextColor("#000000");
     }
     /**
      * Getter Functions
@@ -46,7 +50,10 @@ const CrosswordHint = forwardRef(({
     useImperativeHandle(ref, () => ({
         highlight: highlight,
         unhighlight: unhighlight,
-        getIndex: getIndex
+        getIndex: getIndex,
+        onCorrect: onCorrect,
+        onIncorrect: onIncorrect,
+        resetTextColor: resetTextColor
     }));
     return (
         <button 
@@ -54,7 +61,8 @@ const CrosswordHint = forwardRef(({
             onClick={onClick}
             className="text-start cursor-pointer py-1"
             style={{
-                backgroundColor: backgroundColor
+                backgroundColor: backgroundColor,
+                color: textColor
             }}
         >
             {index}. {hint}

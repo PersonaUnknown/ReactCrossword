@@ -15,4 +15,7 @@ export type CrosswordHintRef = {
     highlight: () => void; // Highlight hint
     unhighlight: () => void; // Unhighlights hint
     getIndex: () => number;
+    onCorrect: () => void;
+    onIncorrect: () => void;
+    resetTextColor: () => void;
 }

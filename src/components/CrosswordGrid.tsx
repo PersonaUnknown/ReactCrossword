@@ -239,13 +239,41 @@ const CrosswordGrid = ({
             return;
         } 
         tileRefs.current[currSelectedTileIndex].updateChar(parsedChar);
-        // 2. Move the selection to a new 
+        // TODO: 2. Check if the word is fully typed out and is correct
+        tileRefs.current[currSelectedTileIndex].checkTile(char);
+        const currWordIndex = direction === "across" ? 
+            tileRefs.current[currSelectedTileIndex].getAcrossWordIndex() :
+            tileRefs.current[currSelectedTileIndex].getDownWordIndex();
+        const currWordData = direction === "across" ?
+            across.get(currWordIndex) :
+            down.get(currWordIndex);
+        if (currWordData === undefined) {
+            return;
+        }
+        const currWord = currWordData.word;
+        let currWordTyped = "";
+        for (const idx of highlightedTileIndices.current) {
+            if (idx === currSelectedTileIndex) {
+                // Because useState is not updated at this point
+                currWordTyped += parsedChar;
+            } else if (data.tiles[idx].type === "word") {
+                const char = tileRefs.current[idx].getChar();
+                currWordTyped += char === "" ? "_" : char;
+            }
+        }
+        if (lastHighlightedHint.current) {
+            const hintIndex = lastHighlightedHint.current.index;
+            if (currWordTyped === currWord) {
+                acrossHintRefs.current[hintIndex].onCorrect();
+            } else if (!currWordTyped.includes("_") && currWordTyped !== currWord) {
+                acrossHintRefs.current[hintIndex].onIncorrect();
+            }
+        }
+        // 3. Move the selection to a new 
         if (char === "") {
             return;
         }
         highlight(getIndexPostTyping(data, direction, getCurrentSelectedTileIndex()));
-        // TODO: 3. Check if the word is fully typed out and is correct
-        tileRefs.current[currSelectedTileIndex].checkTile(char);
     }   
     /**
      * Check if current highlighted word is correct
