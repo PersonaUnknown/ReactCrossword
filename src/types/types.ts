@@ -8,6 +8,11 @@ export interface TypeParameters {
 }
 export type WordDirection = "across" | "down";
 export type CrosswordGridActions = "highlightAcross" | "highlightDown" | "highlight" | "type";
+export interface WordStatus {
+    direction: WordDirection;
+    id: number;
+    correct: boolean;
+}
 export type CrosswordTileState = 
     "idle" | 
     "selected-across" | 

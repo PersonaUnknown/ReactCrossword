@@ -59,7 +59,7 @@ const CrosswordHint = forwardRef(({
         <button 
             type="button"
             onClick={onClick}
-            className="text-start cursor-pointer py-1"
+            className="text-start cursor-pointer p-1"
             style={{
                 backgroundColor: backgroundColor,
                 color: textColor
