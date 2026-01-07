@@ -16,3 +16,7 @@ Crossword Puzzle implementation using React and TypeScript. Some TailwindCSS is 
   [] Includes ensuring mobile support works with mobile keyboard
 [] Start page should be list of pre-made crossword puzzles and eventually build-a-puzzle option
 [] Separate screen to create your own crossword puzzle
+[] Add tests for utility functions
+[] Add secondary / larger crossword for testing
+[] Add biome for linting
+[] Add CI/CD for automated testing / linting

@@ -1,5 +1,5 @@
 import './App.css'
-import CrosswordGrid from './components/CrosswordGrid'
+import CrosswordGrid from './components/crossword/CrosswordGrid'
 import { exampleCrossword } from './utils/crosswordData'
 
 function App() {

@@ -39,3 +39,6 @@ export interface CrosswordLetter {
     across: number;
     down: number;
 }
+export interface CrosswordSettings {
+    errorCheckMode: boolean;
+}

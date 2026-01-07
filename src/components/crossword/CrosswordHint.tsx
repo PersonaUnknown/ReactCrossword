@@ -1,6 +1,6 @@
 import { forwardRef, type Ref, useImperativeHandle, useState, } from "react";
-import type { CrosswordHintRef } from "../types/refs";
-import { CORRECT_TEXT_COLOR, INCORRECT_TEXT_COLOR, LIGHT_HIGHLIGHT_TILE_COLOR } from "../utils/crossword";
+import type { CrosswordHintRef } from "../../types/refs";
+import { CORRECT_TEXT_COLOR, GRAY_TEXT_COLOR, INCORRECT_TEXT_COLOR, LIGHT_HIGHLIGHT_TILE_COLOR } from "../../utils/crossword";
 
 interface Props {
     index: number;
@@ -29,6 +29,12 @@ const CrosswordHint = forwardRef(({
     const unhighlight = () => {
         setBackgroundColor("#ffffff");
     }
+    /**
+     * Adjust text color based on if the typed guess is correct, incorrect, complete, etc.
+     */
+    const fadeText = () => {
+        setTextColor(GRAY_TEXT_COLOR);
+    }
     const onCorrect = () => {
         setTextColor(CORRECT_TEXT_COLOR);
     }
@@ -37,6 +43,17 @@ const CrosswordHint = forwardRef(({
     }
     const resetTextColor = () => {
         setTextColor("#000000");
+    }
+    const onErrorCheckMode = () => {
+        switch (textColor) {
+            case GRAY_TEXT_COLOR:
+            case INCORRECT_TEXT_COLOR:
+            case CORRECT_TEXT_COLOR:
+                fadeText();
+                break;
+            default:
+                break;
+        }
     }
     /**
      * Getter Functions
@@ -53,7 +70,9 @@ const CrosswordHint = forwardRef(({
         getIndex: getIndex,
         onCorrect: onCorrect,
         onIncorrect: onIncorrect,
-        resetTextColor: resetTextColor
+        resetTextColor: resetTextColor,
+        fadeText: fadeText,
+        onErrorCheckMode: onErrorCheckMode
     }));
     return (
         <button 

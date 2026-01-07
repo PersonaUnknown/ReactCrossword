@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { CrosswordHintRef, CrosswordTileRef } from "../types/refs";
-import type { CrosswordData, CrosswordGridAction, WordDirection, WordStatus } from "../types/types";
-import { getColumnIndices, getIndexAbove, getIndexBelow, getIndexLeft, getIndexPostTyping, getIndexRight, getNextWordIndex, getRowIndices, getTileClasses, LARGE_TILE_SIZE } from "../utils/crossword";
+import type { CrosswordHintRef, CrosswordTileRef } from "../../types/refs";
+import type { CrosswordData, CrosswordSettings, CrosswordGridAction, WordDirection, WordStatus } from "../../types/types";
+import { getColumnIndices, getIndexAbove, getIndexBelow, getIndexLeft, getIndexPostTyping, getIndexRight, getNextWordIndex, getRowIndices, getTileClasses, LARGE_TILE_SIZE } from "../../utils/crossword";
 import CrosswordHint from "./CrosswordHint";
+import CrosswordSettingsButton from "./CrosswordSettingsButton";
 import CrosswordTile from "./CrosswordTile";
 
 interface Props {
@@ -24,15 +25,19 @@ const CrosswordGrid = ({
         across,
         down,
     } = data;
-    const [canEdit, setCanEdit] = useState<boolean>(true);
-    const [wordStatuses, setWordStatuses] = useState<WordStatus[]>([]);
-    const [direction, setDirection] = useState<WordDirection>("across"); // Whether to highlight across or down when clicking on a selected tile
-    const acrossHintRefs = useRef<CrosswordHintRef[]>([]); // Refs to crossword hints
-    const downHintRefs = useRef<CrosswordHintRef[]>([]); // Refs to crossword hints
-    const tileRefs = useRef<CrosswordTileRef[]>([]); // Refs to crossword tiles
+    const [canEdit, setCanEdit] = useState<boolean>(true); // To disable editing crossword on game won
+    const [settings, setSettings] = useState<CrosswordSettings>({ 
+        errorCheckMode: false
+    });
+    const [wordStatuses, setWordStatuses] = useState<WordStatus[]>([]); // Used to re-render and call useEffect to double-check statusesRef if user won
+    const statusesRef = useRef<WordStatus[]>([]); // To check if all words are correct to determine if user won
+    const [direction, setDirection] = useState<WordDirection>("across"); // Whether to highlight across or down when clicking on a selected tile 
+    const acrossHintRefs = useRef<CrosswordHintRef[]>([]);
+    const downHintRefs = useRef<CrosswordHintRef[]>([]);
+    const tileRefs = useRef<CrosswordTileRef[]>([]);
     const highlightedTileIndices = useRef<number[]>([]); // Refs of what tiles are highlighted to make it easier to remove the highlighting
-    const lastHighlightedHint = useRef<{ direction: WordDirection, index: number }>(null);
-    const statusesRef = useRef<WordStatus[]>([]);
+    const lastHighlightedHint = useRef<{ direction: WordDirection, index: number }>(null); // To easily remove highlighting from the previous one
+    const gridRef = useRef<HTMLDivElement>(null); // Used to re-focus grid when exiting menus
     /**
      * Highlight across or down tiles
      */
@@ -245,7 +250,9 @@ const CrosswordGrid = ({
         } 
         tileRefs.current[currSelectedTileIndex].updateChar(parsedChar);
         // 2. Check if the word is fully typed out and is correct
-        tileRefs.current[currSelectedTileIndex].checkTile(char);
+        if (settings.errorCheckMode) {
+            tileRefs.current[currSelectedTileIndex].checkTile(char);
+        }
         const acrossIndex = tileRefs.current[currSelectedTileIndex].getAcrossWordIndex();
         const downIndex = tileRefs.current[currSelectedTileIndex].getDownWordIndex();
         const newWordStatuses = [...statusesRef.current];
@@ -265,11 +272,18 @@ const CrosswordGrid = ({
             const statusIndex = newWordStatuses.findIndex(status => status.direction === "across" && status.id === acrossIndex);
             if (acrossWordData) {
                 if (currAcrossWordTyped === acrossWordData.word) {
-                    acrossRef?.onCorrect();
+                    if (settings.errorCheckMode) {
+                        acrossRef?.onCorrect();
+                    }
                     newWordStatuses[statusIndex].correct = true;
                 } else if (!currAcrossWordTyped.includes("_") && currAcrossWordTyped !== acrossWordData.word) {
-                    acrossRef?.onIncorrect();
+                    if (settings.errorCheckMode) {
+                        acrossRef?.onIncorrect();
+                    }
                     newWordStatuses[statusIndex].correct = false;
+                } 
+                if (!settings.errorCheckMode && !currAcrossWordTyped.includes("_")) {
+                    acrossRef?.fadeText();
                 }
             }
         }
@@ -289,11 +303,18 @@ const CrosswordGrid = ({
             const statusIndex = newWordStatuses.findIndex(status => status.direction === "down" && status.id === downIndex);
             if (downWordData) {
                 if (currDownWordTyped === downWordData.word) {
-                    downRef?.onCorrect();
+                    if (settings.errorCheckMode) {
+                        downRef?.onCorrect();
+                    }
                     newWordStatuses[statusIndex].correct = true;
                 } else if (!currDownWordTyped.includes("_") && currDownWordTyped !== downWordData.word) {
-                    downRef?.onIncorrect();
+                    if (settings.errorCheckMode) {
+                        downRef?.onIncorrect();
+                    }
                     newWordStatuses[statusIndex].correct = false;
+                } 
+                if (!settings.errorCheckMode && !currDownWordTyped.includes("_")) {
+                    downRef?.fadeText();
                 }
             }
         }
@@ -394,15 +415,92 @@ const CrosswordGrid = ({
         if (checkForWin()) {
             alert("You Won!");
             setCanEdit(false);
+        } else {
+            // alert("Uh oh! There's some errors in your answer.");
         }
     }, [wordStatuses, canEdit, checkForWin]);
+    /**
+     * Re-focus crossword on start + exiting settings menu
+     */
+    useEffect(() => {
+        if (canEdit) {
+            gridRef?.current?.focus();
+        }
+    }, [canEdit]);
+    /**
+     * Whenever the settings are changed, re-apply stylings to tiles and hints 
+     */
+    useEffect(() => {
+        const { errorCheckMode } = settings;
+        for (const tile of tileRefs.current) {
+            if (errorCheckMode) {
+                tile.checkTile();
+            } else {
+                tile.removeTextColor();
+            }
+        }
+        for (const hint of acrossHintRefs.current) {
+            hint.getIndex()
+            let currAcrossWordTyped = "";
+            const acrossIndex = hint.getIndex();
+            const acrossTiles = tileRefs.current.filter(tile => tile.getAcrossWordIndex() === acrossIndex);
+            for (const tile of acrossTiles) {
+                currAcrossWordTyped += tile.getChar() === "" ? "_" : tile.getChar();
+            }
+            const acrossWordData = across.get(acrossIndex);
+            if (acrossWordData) {
+                if (currAcrossWordTyped === acrossWordData.word) {
+                    if (settings.errorCheckMode) {
+                        hint?.onCorrect();
+                    }
+                } else if (!currAcrossWordTyped.includes("_") && currAcrossWordTyped !== acrossWordData.word) {
+                    if (settings.errorCheckMode) {
+                        hint?.onIncorrect();
+                    }
+                } 
+                if (!settings.errorCheckMode && !currAcrossWordTyped.includes("_")) {
+                    hint?.fadeText();
+                }
+            }
+        }
+        for (const hint of downHintRefs.current) {
+            hint.getIndex()
+            let currAcrossWordTyped = "";
+            const downIndex = hint.getIndex();
+            const downTiles = tileRefs.current.filter(tile => tile.getDownWordIndex() === downIndex);
+            for (const tile of downTiles) {
+                currAcrossWordTyped += tile.getChar() === "" ? "_" : tile.getChar();
+            }
+            const downWordData = down.get(downIndex);
+            if (downWordData) {
+                if (currAcrossWordTyped === downWordData.word) {
+                    if (settings.errorCheckMode) {
+                        hint?.onCorrect();
+                    }
+                } else if (!currAcrossWordTyped.includes("_") && currAcrossWordTyped !== downWordData.word) {
+                    if (settings.errorCheckMode) {
+                        hint?.onIncorrect();
+                    }
+                } 
+                if (!settings.errorCheckMode && !currAcrossWordTyped.includes("_")) {
+                    hint?.fadeText();
+                }
+            }
+        }
+    }, [settings]);
     return (
         <div 
-            className="p-6 select-none border border-black"
+            className="p-6 select-none border border-black relative focus:outline-0"
             role="application"
             tabIndex={0}
             onKeyDown={onKeyDown}
+            ref={gridRef}
         >
+            <CrosswordSettingsButton 
+                settings={settings}
+                setSettings={setSettings}
+                setCanEdit={setCanEdit}
+            />
             <div className="flex flex-col md:flex-row gap-8">
                 <div className="flex flex-col gap-1 leading-0">
                     <h2 className="text-lg font-bold">{title}</h2>

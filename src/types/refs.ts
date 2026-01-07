@@ -9,7 +9,8 @@ export type CrosswordTileRef = {
     getState : () => CrosswordTileState;
     updateChar: (char: string) => void;
     getChar: () => string;
-    checkTile: (char: string) => void;
+    checkTile: (char?: string) => void;
+    removeTextColor: () => void;
 }
 export type CrosswordHintRef = {
     highlight: () => void; // Highlight hint
@@ -18,4 +19,10 @@ export type CrosswordHintRef = {
     onCorrect: () => void;
     onIncorrect: () => void;
     resetTextColor: () => void;
+    fadeText: () => void;
+    onErrorCheckMode: () => void;
+}
+export interface ModalRef {
+	onShow: () => void;
+	onHide: () => void;
 }

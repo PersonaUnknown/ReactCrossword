@@ -1,8 +1,8 @@
 import { forwardRef,useImperativeHandle, useState, type Ref } from "react";
 import { twMerge } from "tailwind-merge";
-import type { CrosswordTileRef } from "../types/refs";
-import type { CrosswordGridAction, CrosswordLetter, CrosswordTileState } from "../types/types";
-import { DARK_HIGHLIGHT_TILE_COLOR, INCORRECT_TEXT_COLOR, LARGE_TILE_SIZE, LIGHT_HIGHLIGHT_TILE_COLOR } from "../utils/crossword";
+import type { CrosswordTileRef } from "../../types/refs";
+import type { CrosswordGridAction, CrosswordLetter, CrosswordTileState } from "../../types/types";
+import { DARK_HIGHLIGHT_TILE_COLOR, INCORRECT_TEXT_COLOR, LARGE_TILE_SIZE, LIGHT_HIGHLIGHT_TILE_COLOR } from "../../utils/crossword";
 
 interface Props {
     data: CrosswordLetter;
@@ -52,16 +52,19 @@ const CrosswordTile = forwardRef(({
         setBackgroundColor("#ffffff");
     }
     /**
-     * Checks if the current character matches the character it's supposed to be.
+     * Checks if the current or new input character matches the character it's supposed to be.
      * Highlights the text color if it's correct or not
      */
-    const checkTile = (char: string) => {
-        const parsedChar = char.toUpperCase();
+    const checkTile = (char?: string) => {
+        const parsedChar = char === undefined ? currChar.toUpperCase() : char.toUpperCase();
         if (parsedChar.length > 0 && parsedChar !== character) {
             setTextColor(INCORRECT_TEXT_COLOR);
         } else {
             setTextColor("#000000");
         }
+    }
+    const removeTextColor = () => {
+        setTextColor("#000000");
     }
     /**
      * Getter Methods
@@ -96,7 +99,8 @@ const CrosswordTile = forwardRef(({
         getState: getState,
         updateChar: updateChar,
         getChar: getChar,
-        checkTile: checkTile
+        checkTile: checkTile,
+        removeTextColor: removeTextColor
     }));
     /* 
      * Render black tile if tile is not associated with a character / word.

@@ -8,6 +8,7 @@ export const DARK_HIGHLIGHT_TILE_COLOR = "#9999FF";  // Color taken from https:/
 export const LIGHT_HIGHLIGHT_TILE_COLOR = "#CCCCFF"; // Color taken from https://www.boatloadpuzzles.com/playcrossword
 export const CORRECT_TEXT_COLOR = "#00d04b";
 export const INCORRECT_TEXT_COLOR = "#ff0022";
+export const GRAY_TEXT_COLOR = "#636167";
 export const FIRST_COLUMN_TILE_CLASSES = "border-t border-x border-black";
 export const FIRST_ROW_TILE_CLASSES = "border-t border-r border-black";
 export const LAST_ROW_TILE_CLASSES = "border-b border-black";
