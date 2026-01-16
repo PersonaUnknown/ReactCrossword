@@ -1,4 +1,4 @@
-import type { CrosswordData, TileState, WordDirection } from "../types/types";
+import type { CrosswordData, HintState, TileState, WordDirection } from "../types/types";
 
 /**
  * Config
@@ -329,10 +329,19 @@ export const highlightTile = (
 }
 /**
  * Highlight hint in crossword grid given its index and direction
+ * @param hints crossword hint data
+ * @param index index of the selected hint
+ * @returns [new tile states, new direction to highlight]
  */
 export const highlightHint = (
-    direction: WordDirection,
+    hints: HintState[],
     index: number
 ) => {
-
+    const newHints = [...hints];
+    const prevHighlightedHints = newHints.filter(hint => hint.highlight);
+    for (const hint of prevHighlightedHints) {
+        hint.highlight = false;
+    }
+    newHints[index].highlight = true;
+    return newHints;
 }

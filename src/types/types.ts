@@ -78,6 +78,7 @@ export interface TileState {
     downId: number;
 }
 export interface HintState {
+    direction: WordDirection;
     textHighlight: "none" | "complete" | "correct" | "wrong";
     highlight: boolean;
     hint: string;

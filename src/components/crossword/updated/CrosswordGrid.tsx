@@ -1,7 +1,7 @@
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { CrosswordData2, HintState, TileState, WordDirection, WordProgress } from "../../../types/types";
-import { flipWordDirection, getTileClasses, highlightTile, LARGE_TILE_SIZE } from "../../../utils/crossword";
+import { flipWordDirection, getTileClasses, highlightHint, highlightTile, LARGE_TILE_SIZE } from "../../../utils/crossword";
 // // import CrosswordHint from "./CrosswordHint";
 // import CrosswordMenu from "./CrosswordMenu";
 // import CrosswordSettingsButton from "./CrosswordSettingsButton";
@@ -28,30 +28,15 @@ const CrosswordGrid = ({
         height,
         words
     } = data;
-    const acrossWords = [...words.entries()]
-        .filter(word => word[1].across !== null)
-        .map(word => {
-            return {
-                index: word[0],
-                data: word[1].across
-            }
-        });
-    const downWords = [...words.entries()]
-        .filter(word => word[1].down !== null)
-        .map(word => {
-            return {
-                index: word[0],
-                data: word[1].down
-            }
-        });
     /**
      * State / Ref Definition
      */
     const [currDirection, setCurrDirection] = useState<WordDirection>("across"); // Keeps track of whether to highlight across or down
     const [progress, setProgress] = useState<WordProgress[]>([]);
     const [tileStates, setTileStates] = useState<TileState[]>([]);
-    const [acrossHintStates, setAcrossHintStates] = useState<HintState[]>([]);
-    const [downHintStates, setDownHintStates] = useState<HintState[]>([]);
+    const [hintStates, setHintStates] = useState<HintState[]>([]);
+    const acrossHints = hintStates.filter(hint => hint.direction === "across");
+    const downHints = hintStates.filter(hint => hint.direction === "down");
     /**
      * Methods / Hooks
      */
@@ -68,8 +53,9 @@ const CrosswordGrid = ({
     const onHintClick = (
         direction: WordDirection,
         index: number
-    ) => {
-        
+    ) => { 
+        const newHintState = highlightHint(hintStates, index);
+        setHintStates(newHintState);
     }
     /**
      * Type character into tile and move the selection to a new tile that has no character in it.
@@ -95,8 +81,7 @@ const CrosswordGrid = ({
      * Init starting word to highlight
      */
     useEffect(() => {
-        const initAcrossHints: HintState[] = [];
-        const initDownHints: HintState[] = [];
+        const initHints: HintState[] = [];
         const initTiles: TileState[] = [];
         const initProgress: WordProgress[] = [];
         let startWordIndex = -1;
@@ -115,7 +100,8 @@ const CrosswordGrid = ({
                     tiles: tileIndices,
                     correct: false
                 });
-                initAcrossHints.push({
+                initHints.push({
+                    direction: "across",
                     hint: across.hint,
                     index: wordIndex,
                     highlight: startWordIndex === -1,
@@ -136,7 +122,8 @@ const CrosswordGrid = ({
                     tiles: tileIndices,
                     correct: false
                 });
-                initDownHints.push({
+                initHints.push({
+                    direction: "down",
                     hint: down.hint,
                     index: wordIndex,
                     highlight: false,
@@ -162,8 +149,7 @@ const CrosswordGrid = ({
         const initHighlightedTiles = highlightTile(initTiles, currDirection, startWordIndex);
         setTileStates(initHighlightedTiles[0]);
         setProgress(initProgress);
-        setAcrossHintStates(initAcrossHints);
-        setDownHintStates(initDownHints);
+        setHintStates(initHints);
     }, []);
     return (
         <div 
@@ -202,34 +188,36 @@ const CrosswordGrid = ({
                     </div>
                 </div>
                 <div className="flex flex-col gap-2">
-                    {acrossHintStates.length > 0 &&
+                    {acrossHints.length > 0 &&
                         <section className="flex flex-col">
                             <h2 className="text-lg font-bold">Across</h2>
-                            {acrossHintStates.map((hint, index) => {
+                            {acrossHints.map((hint, index) => {
                                 const key = `across-${index}`;
+                                const hintIndex = hintStates.findIndex(state => state === hint);
                                 return (
                                     <CrosswordHint 
                                         key={key}    
                                         state={hint}
                                         onClick={() => {
-                                            onHintClick("across", index);
+                                            onHintClick("across", hintIndex);
                                         }}
                                     />
                                 );
                             })}
                         </section>
                     }
-                    {downHintStates.length > 0 &&
+                    {downHints.length > 0 &&
                         <section className="flex flex-col">
                             <h2 className="text-lg font-bold">Down</h2>
-                            {downHintStates.map((hint, index) => {
+                            {downHints.map((hint, index) => {
                                 const key = `down-${index}`;
+                                const hintIndex = hintStates.findIndex(state => state === hint);
                                 return (
                                     <CrosswordHint 
                                         key={key}    
                                         state={hint}
                                         onClick={() => {
-                                            onHintClick("down", index);
+                                            onHintClick("down", hintIndex);
                                         }}
                                     />
                                 );
