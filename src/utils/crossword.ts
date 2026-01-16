@@ -1,4 +1,4 @@
-import type { CrosswordData, WordDirection } from "../types/types";
+import type { CrosswordData, TileState, WordDirection } from "../types/types";
 
 /**
  * Config
@@ -205,4 +205,134 @@ export const getNextWordIndex = (
         index: acrossEntries[0][1].startIndex,
         direction: "across"
     };
+}
+
+// New
+/**
+ * Given a tile's current state, output the appropriate background color it should be
+ * @param state 
+ * @returns hex color of new tile text
+ */
+export const getTileCharColor = (
+    state: string
+): string => {
+    switch (state) {
+        case "wrong":
+            return INCORRECT_TEXT_COLOR;
+        case "none":
+        default:
+            return "#ffffff";
+    }
+        
+}
+/**
+ * Given a tile's current state, output the appropriate background color it should be
+ * @param highlight tile highlight state
+ * @returns hex color of new tile background
+ */
+export const getTileHighlightColor = (
+    highlight: string
+): string => {
+    switch (highlight) {
+        case "light":
+            return LIGHT_HIGHLIGHT_TILE_COLOR;
+        case "dark":
+            return DARK_HIGHLIGHT_TILE_COLOR;
+        case "background":
+            return "#000000";
+        case "none":
+        default:
+            return "#ffffff";
+    }
+}
+/**
+ * Given a hint's state, output the appropriate text color
+ * @param state 
+ * @returns hex color of new hint text
+ */
+export const getHintTextColor = (
+    state: string
+): string => {
+    switch (state) {
+        case "none":
+            return "#000000";
+        case "complete":
+            return GRAY_TEXT_COLOR;
+        case "correct":
+            return CORRECT_TEXT_COLOR;
+        default:
+            return INCORRECT_TEXT_COLOR;
+    }
+}
+/**
+ * Given a hint's state, output the appropriate background color
+ * @param state whether to highlight the hint or not
+ * @returns hex color of new hint background
+ */
+export const getHintHighlightColor = (
+    state: boolean
+): string => {
+    return state ? LIGHT_HIGHLIGHT_TILE_COLOR : "#ffffff";
+}
+/**
+ * Flip crossword selection from across -> down and vice versa
+ * @param tiles crossword tile data
+ * @param direction whether to highlight across or down
+ * @returns [new tile states, new direction to highlight] or unchanged if cannot flip
+ */
+export const flipWordDirection = (
+    tiles: TileState[],
+    direction: WordDirection
+): [TileState[], WordDirection] => {
+    const currSelectedTileIndex = tiles.findIndex(tile => tile.tileHighlight === "dark");
+    if (currSelectedTileIndex !== undefined) {
+        return highlightTile(tiles, direction, currSelectedTileIndex);
+    }
+    return [[...tiles], direction];
+}
+/**
+ * Highlight tile in crossword grid and the rest belonging to the same word
+ * @param tiles crossword tile data
+ * @param direction whether to highlight across or down
+ * @param index index of the selected tile
+ * @returns [new tile states, new direction to highlight]
+ */
+export const highlightTile = (
+    tiles: TileState[],
+    direction: WordDirection,
+    index: number,
+): [TileState[], WordDirection] => {
+    const newTiles = [...tiles];
+    const selectedTile = newTiles[index];
+    // Determine whether to flip the highlight (if possible)
+    const shouldFlipDirection = selectedTile.tileHighlight === "dark";
+    const isFlipPossible = direction === "across" ? selectedTile.downId > 0 : selectedTile.acrossId > 0;
+    const targetDirection = shouldFlipDirection && isFlipPossible ?
+        direction === "across" ? 
+            "down" : 
+            "across" :
+        direction;     
+    const currWordId = targetDirection === "across" ? selectedTile.acrossId : selectedTile.downId;
+    // Remove highlighting from previous selection and highlight new selection
+    const tilesToHighlight = targetDirection === "across" ? 
+        newTiles.filter((tile, tileIndex) => index !== tileIndex && tile.acrossId === currWordId) :
+        newTiles.filter((tile, tileIndex) => index !== tileIndex && tile.downId === currWordId);
+    const previouslyHighlightedTiles = newTiles.filter(tile => tile.tileHighlight !== "none" && tile.tileHighlight !== "background");
+    for (const tile of previouslyHighlightedTiles) {
+        tile.tileHighlight = "none";
+    }
+    selectedTile.tileHighlight = "dark";
+    for (const tile of tilesToHighlight) {
+        tile.tileHighlight = "light";
+    }
+    return [newTiles, targetDirection];
+}
+/**
+ * Highlight hint in crossword grid given its index and direction
+ */
+export const highlightHint = (
+    direction: WordDirection,
+    index: number
+) => {
+
 }

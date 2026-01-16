@@ -1,8 +1,10 @@
+import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { CrosswordHintRef, CrosswordTileRef } from "../../types/refs";
 import type { CrosswordData, CrosswordSettings, CrosswordGridAction, WordDirection, WordStatus } from "../../types/types";
 import { getColumnIndices, getIndexAbove, getIndexBelow, getIndexLeft, getIndexPostTyping, getIndexRight, getNextWordIndex, getRowIndices, getTileClasses, LARGE_TILE_SIZE } from "../../utils/crossword";
 import CrosswordHint from "./CrosswordHint";
+import CrosswordMenu from "./CrosswordMenu";
 import CrosswordSettingsButton from "./CrosswordSettingsButton";
 import CrosswordTile from "./CrosswordTile";
 
@@ -25,6 +27,7 @@ const CrosswordGrid = ({
         across,
         down,
     } = data;
+    const [hasWon, setHasWon] = useState<boolean>(false);
     const [canEdit, setCanEdit] = useState<boolean>(true); // To disable editing crossword on game won
     const [settings, setSettings] = useState<CrosswordSettings>({ 
         errorCheckMode: false
@@ -185,6 +188,83 @@ const CrosswordGrid = ({
         }
     }
     /**
+     * Check if the letter, word, or grid is correct (only tiles not hints)
+     */
+    const checkLetter = () => {
+        const index = getCurrentSelectedTileIndex();
+        tileRefs?.current[index]?.checkTile();
+    }
+    const checkWord = () => {
+        for (const index of highlightedTileIndices.current) {
+            tileRefs?.current[index]?.checkTile();
+        }
+    }
+    const checkGrid = () => {
+        for (const tile of tileRefs.current) {
+            tile.checkTile();
+        }
+    }
+    /**
+     * Reveal the letter, word, or grid tiles
+     */
+    const revealLetter = () => {
+        const index = getCurrentSelectedTileIndex();
+        if (index < 0 || index >= tiles.length) {
+            return;
+        }
+        const correctLetter = tiles[index].character;
+        type(correctLetter);
+    }
+    const revealWord = () => {
+        // Fill in all the characters in highlighted section
+        for (let i = 0; i < highlightedTileIndices.current.length; i++) {
+            const index = highlightedTileIndices.current[i];
+            const correctLetter = tiles[index].character;
+            tileRefs.current[index].updateChar(correctLetter);
+        }
+        // Mark the highlighted word as correct
+        const newWordStatuses = [...statusesRef.current];
+        if (direction === "across") {
+            const acrossIndex = tileRefs.current[highlightedTileIndices.current[0]].getAcrossWordIndex();
+            const acrossRef = acrossHintRefs.current.find(ref => ref.getIndex() === acrossIndex);
+            acrossRef?.onCorrect();
+            const statusIndex = newWordStatuses.findIndex(status => status.direction === "across" && status.id === acrossIndex);
+            newWordStatuses[statusIndex].correct = true;
+        } else {
+            const downIndex = tileRefs.current[highlightedTileIndices.current[0]].getDownWordIndex();
+            const downRef = acrossHintRefs.current.find(ref => ref.getIndex() === downIndex);
+            downRef?.onCorrect();
+            const statusIndex = newWordStatuses.findIndex(status => status.direction === "down" && status.id === downIndex);
+            newWordStatuses[statusIndex].correct = true;
+        }
+        // Check if other words were correct
+        setTimeout(() => {
+            revealLetter();
+        }, 100);
+    }
+    const revealGrid = () => {
+        for (let i = 0; i < tiles.length; i++) {
+            const correctChar = tiles[i].character;
+            const tileRef = tileRefs.current[i];
+            tileRef.updateChar(correctChar);
+        }
+        const hints = [...acrossHintRefs.current, ...downHintRefs.current];
+        for (const hint of hints) {
+            if (settings.errorCheckMode) {
+                hint.onCorrect();
+            } else {
+                hint.fadeText();
+            }
+        }
+        const newWordStatuses = [...statusesRef.current];
+        for (let i = 0; i < newWordStatuses.length; i++) {
+            const status = newWordStatuses[i];
+            status.correct = true;
+        }
+        statusesRef.current = newWordStatuses;
+        setWordStatuses(newWordStatuses); 
+    }
+    /**
      * Type character into tile and move the selection to a new tile that has no character in it.
      * preventDefault called to stop propagation of event to CrosswordTiles.
      * @param index tile index to change
@@ -241,10 +321,16 @@ const CrosswordGrid = ({
         }
         e.preventDefault();
     }
-    const type = (char: string) => {
+    /**
+     * Type a character into the currently selected tile
+     * @param char input character
+     * @param index override to target a specific tile index
+     * @returns 
+     */
+    const type = (char: string, index?: number) => {
         // 1. Type in the current
         const parsedChar = char.toUpperCase();
-        const currSelectedTileIndex = getCurrentSelectedTileIndex();
+        const currSelectedTileIndex = index !== undefined ? index : getCurrentSelectedTileIndex();
         if (currSelectedTileIndex < 0 && currSelectedTileIndex >= tileRefs.current.length) {
             return;
         } 
@@ -355,6 +441,24 @@ const CrosswordGrid = ({
             case "highlight":
                 highlight(parameter);
                 break;
+            case "revealWord":
+                revealWord();
+                break;
+            case "revealLetter":
+                revealLetter();
+                break;
+            case "revealGrid":
+                revealGrid();
+                break;
+            case "checkLetter":
+                checkLetter();
+                break;
+            case "checkWord":
+                checkWord();
+                break;
+            case "checkGrid":
+                checkGrid();
+                break;
             default:
                 break;
         }
@@ -409,16 +513,17 @@ const CrosswordGrid = ({
         return true;
     }, []);
     useEffect(() => {
-        if (!canEdit) {
+        if (!canEdit || hasWon) {
             return;
         }
         if (checkForWin()) {
             alert("You Won!");
             setCanEdit(false);
+            setHasWon(true);
         } else {
             // alert("Uh oh! There's some errors in your answer.");
         }
-    }, [wordStatuses, canEdit, checkForWin]);
+    }, [wordStatuses, canEdit, hasWon, checkForWin]);
     /**
      * Re-focus crossword on start + exiting settings menu
      */
@@ -496,11 +601,36 @@ const CrosswordGrid = ({
             onKeyDown={onKeyDown}
             ref={gridRef}
         >
-            <CrosswordSettingsButton 
-                settings={settings}
-                setSettings={setSettings}
-                setCanEdit={setCanEdit}
-            />
+            <AnimatePresence>
+                {!hasWon && !canEdit && (
+                    <>
+                        <motion.button 
+                            className="absolute inset-0 bg-[#00000080] z-10" 
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.15 }}
+                            type="button"
+                            onClick={() => { setCanEdit(true); }}
+                        />
+                    </> 
+                )}
+            </AnimatePresence>
+            <div className="flex flex-row gap-1 justify-end">
+                <CrosswordMenu 
+                    hasWon={hasWon}
+                    canEdit={canEdit}
+                    setCanEdit={setCanEdit}
+                    handleAction={handleAction}
+                />
+                <CrosswordSettingsButton
+                    hasWon={hasWon} 
+                    settings={settings}
+                    setSettings={setSettings}
+                    canEdit={canEdit}
+                    setCanEdit={setCanEdit}
+                />
+            </div>
             <div className="flex flex-col md:flex-row gap-8">
                 <div className="flex flex-col gap-1 leading-0">
                     <h2 className="text-lg font-bold">{title}</h2>

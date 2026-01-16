@@ -1,15 +1,18 @@
 import './App.css'
-import CrosswordGrid from './components/crossword/CrosswordGrid'
-import { exampleCrossword } from './utils/crosswordData'
+import { Route, BrowserRouter as Router, Routes } from "react-router-dom";
+import HomePage from './pages/HomePage';
+import CrosswordPuzzle from './components/crossword/updated/CrosswordPuzzle';
+import { exampleMiniCrossword, singleRowCrossword } from './utils/crosswordData'
 
 function App() {
   return (
-    <div className="min-w-screen min-h-screen container p-6 space-y-4">
-      <h2 className="text-center font-bold text-4xl">Example 5x5 Crossword</h2>
-      <div className="flex justify-center">
-        <CrosswordGrid data={exampleCrossword} />
-      </div>
-    </div>
+    <Router>
+			<Routes>
+				<Route path="/" element={<HomePage />} />
+				<Route path="/simple" element={<CrosswordPuzzle data={singleRowCrossword} />} />
+				<Route path="/example" element={<CrosswordPuzzle data={exampleMiniCrossword} />} />
+			</Routes>
+		</Router>
   )
 }
 

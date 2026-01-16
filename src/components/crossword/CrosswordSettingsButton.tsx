@@ -1,12 +1,14 @@
 import { AnimatePresence, motion } from "motion/react";
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { IoMdSettings } from "react-icons/io";
 import { MdClose, MdOutlineCheckBox, MdOutlineCheckBoxOutlineBlank } from "react-icons/md";
 import type { CrosswordSettings } from "../../types/types";
 
 interface Props {
+    hasWon: boolean;
     settings: CrosswordSettings;
     setSettings: React.Dispatch<React.SetStateAction<CrosswordSettings>>;
+    canEdit: boolean;
     setCanEdit: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
@@ -14,20 +16,25 @@ interface Props {
  * Settings button that opens a 
  */
 const CrosswordSettingsButton = ({
+    hasWon,
     settings,
     setSettings,
+    canEdit,
     setCanEdit
 }: Props) => {
     const [tempSettings, setTempSettings] = useState<CrosswordSettings>(settings);
     const [isOpen, setIsOpen] = useState<boolean>(false);
     const openModal = () => { 
+        if (hasWon) {
+            return;
+        }
         setCanEdit(false);
         setIsOpen(true); 
     }
-    const closeModal = () => { 
+    const closeModal = useCallback(() => {
         setCanEdit(true);
         setIsOpen(false); 
-    }
+    }, []);
     const toggleErrorCheckMode = () => {
         const newSettings = { ...tempSettings };
         newSettings.errorCheckMode = !newSettings.errorCheckMode;
@@ -38,12 +45,17 @@ const CrosswordSettingsButton = ({
         setSettings(newSettings);
         closeModal();
     }
+    useEffect(() => {
+        if (canEdit) {
+            closeModal();
+        }
+    }, [canEdit, closeModal]);
     return (
         <>
             <div className="flex justify-end">
                 <button 
                     type="button" 
-                    className="cursor-pointer"
+                    className="cursor-pointer bg-white hover:bg-[#dedede] transition-colors duration-100 ease-in rounded-xl px-3 py-2"
                     onClick={openModal}
                 >
                     <IoMdSettings size={25} />
@@ -52,13 +64,13 @@ const CrosswordSettingsButton = ({
             <AnimatePresence>
                 {isOpen && (
                     <>
-                        <motion.div 
+                        {/* <motion.div 
                             className="absolute inset-0 bg-[#00000080] z-10" 
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
                             transition={{ duration: 0.15 }}
-                        /> 
+                        /> */}
                         <motion.div 
                             className="absolute top-5 left-1/2 -translate-x-1/2 bg-white p-4 flex flex-col justify-center w-3xs sm:w-sm z-20"
                             initial={{ opacity: 0 }}
