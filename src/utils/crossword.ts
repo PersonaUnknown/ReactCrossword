@@ -317,12 +317,21 @@ export const highlightTile = (
     const tilesToHighlight = targetDirection === "across" ? 
         newTiles.filter((tile, tileIndex) => index !== tileIndex && tile.acrossId === currWordId) :
         newTiles.filter((tile, tileIndex) => index !== tileIndex && tile.downId === currWordId);
-    const previouslyHighlightedTiles = newTiles.filter(tile => tile.tileHighlight !== "none" && tile.tileHighlight !== "background");
+    const previouslyHighlightedTiles = newTiles.filter(tile => 
+        tile.tileHighlight !== "none" && 
+        tile.tileHighlight !== "background"
+    );
     for (const tile of previouslyHighlightedTiles) {
+        if (tile.tileHighlight === "background") {
+            continue;
+        }
         tile.tileHighlight = "none";
     }
     selectedTile.tileHighlight = "dark";
     for (const tile of tilesToHighlight) {
+        if (tile.tileHighlight === "background") {
+            continue;
+        }
         tile.tileHighlight = "light";
     }
     return [newTiles, targetDirection];

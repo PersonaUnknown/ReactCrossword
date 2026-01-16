@@ -43,19 +43,45 @@ const CrosswordGrid = ({
     /**
      * Highlight tile(s) and hint when interacted with
      */
+    const highlightHintHelper = (
+        direction: WordDirection,
+        index: number
+    ) => {
+        const hintId = direction === "across" ? tiles[index].across : tiles[index].down;
+        const hintIndex = hintStates.findIndex(hint => hint.index === hintId);
+        const newHintStates = highlightHint(hintStates, hintIndex);
+        setHintStates(newHintStates);
+    }
     const onTileClick = (
         index: number
     ) => {
-        const tiles = highlightTile(tileStates, currDirection, index);
-        setTileStates(tiles[0]);
-        setCurrDirection(tiles[1]);
+        const newTileStates = highlightTile(tileStates, currDirection, index);
+        const newDirection = newTileStates[1];
+        setTileStates(newTileStates[0]);
+        setCurrDirection(newDirection);
+        highlightHintHelper(newDirection, index);
     }
     const onHintClick = (
         direction: WordDirection,
         index: number
     ) => { 
-        const newHintState = highlightHint(hintStates, index);
-        setHintStates(newHintState);
+        if (hintStates[index].highlight) {
+            return;
+        }
+        const wordId = hintStates[index].index;
+        const startIndex = direction === "across" ?
+            words.get(wordId)?.across?.startIndex :
+            words.get(wordId)?.down?.startIndex;
+        if (startIndex !== undefined) {
+            let newTiles = highlightTile(tileStates, currDirection, startIndex);
+            if (direction !== currDirection) {
+                newTiles = flipWordDirection(newTiles[0], currDirection);
+            }
+            setTileStates(newTiles[0]);
+            setCurrDirection(newTiles[1]);
+        }
+        const newHintStates = highlightHint(hintStates, index);
+        setHintStates(newHintStates);
     }
     /**
      * Type character into tile and move the selection to a new tile that has no character in it.
@@ -67,9 +93,13 @@ const CrosswordGrid = ({
         const key = e.key;
         switch (key) {
             case " ":
-                const tiles = flipWordDirection(tileStates, currDirection);
-                setTileStates(tiles[0]);
-                setCurrDirection(tiles[1]);
+                const flippedTileStates = flipWordDirection(tileStates, currDirection);
+                const newTileStates = flippedTileStates[0];
+                const newDirection = flippedTileStates[1];
+                setTileStates(newTileStates);
+                setCurrDirection(newDirection);
+                const currSelectedTileIndex = newTileStates.findIndex(tile => tile.tileHighlight === "dark");
+                highlightHintHelper(newDirection, currSelectedTileIndex);
                 break;
             default:
                 break;
