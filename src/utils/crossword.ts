@@ -219,6 +219,8 @@ export const getTileCharColor = (
     switch (state) {
         case "wrong":
             return INCORRECT_TEXT_COLOR;
+        case "correct":
+            return CORRECT_TEXT_COLOR;
         case "none":
         default:
             return "#000000";
@@ -595,4 +597,27 @@ export const updateHintText = (
 
     }
     return newHints;
+}
+/**
+ * Re-color crossword tiles based on if the character input is correct or not
+ * @param data crossword data
+ * @param tiles crossword tile data
+ * @param errorCheckMode whether to highlight text differently on incorrect answers
+ */
+export const recolorTiles = (
+    data: CrosswordData2,
+    tiles: TileState[],
+    errorCheckMode: boolean
+): TileState[] => {
+    const newTiles = [...tiles];
+    for (let i = 0; i < newTiles.length; i++) {
+        const tile = newTiles[i];
+        const answer = data.tiles[i].character;
+        if (errorCheckMode) {
+            tile.charHighlight = tile.character === answer ? "correct" : "wrong"; 
+        } else {
+            tile.charHighlight = "none";
+        }
+    }
+    return newTiles;
 }

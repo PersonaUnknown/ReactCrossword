@@ -70,7 +70,7 @@ export interface WordProgress {
 export interface TileState {
     character: string;
     cornerValue: number;
-    charHighlight: "none" | "wrong";
+    charHighlight: "none" | "wrong" | "correct";
     tileHighlight: "none" | "light" | "dark" | "background";
     acrossId: number;
     downId: number;

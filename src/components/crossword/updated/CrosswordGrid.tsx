@@ -1,10 +1,10 @@
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { CrosswordData2, CrosswordSettings, HintState, TileState, WordDirection, WordProgress } from "../../../types/types";
-import { checkWordProgress, flipWordDirection, getArrowKeyIndex, getCurrTileIndex, getTileClasses, highlightHint, highlightTile, LARGE_TILE_SIZE, typeTile, updateHintText, updateWordProgress } from "../../../utils/crossword";
+import { checkWordProgress, flipWordDirection, getArrowKeyIndex, getTileClasses, highlightHint, highlightTile, LARGE_TILE_SIZE, recolorTiles, typeTile, updateHintText, updateWordProgress } from "../../../utils/crossword";
 // // import CrosswordHint from "./CrosswordHint";
 // import CrosswordMenu from "./CrosswordMenu";
-// import CrosswordSettingsButton from "./CrosswordSettingsButton";
+import CrosswordSettingsButton from "./CrosswordSettingsButton";
 import CrosswordTile from "./CrosswordTile";
 import CrosswordHint from "./CrosswordHint";
 
@@ -34,6 +34,7 @@ const CrosswordGrid = ({
     const [canEdit, setCanEdit] = useState<boolean>(true);
     const [currDirection, setCurrDirection] = useState<WordDirection>("across"); // Keeps track of whether to highlight across or down
     const [progress, setProgress] = useState<WordProgress[]>([]);
+    const [hasWon, setHasWon] = useState<boolean>(false);
     const [settings, setSettings] = useState<CrosswordSettings>({ 
         errorCheckMode: false
     });
@@ -161,7 +162,7 @@ const CrosswordGrid = ({
                 const currTile = newTileStates[0][typeTargetIndex];
                 const updatedWordProgress = updateWordProgress(progress, newTileStates[0], currTile.acrossId, currTile.downId);
                 setProgress(updatedWordProgress);
-                setTileStates(newTileStates[0]);
+                setTileStates(recolorTiles(data, newTileStates[0], settings.errorCheckMode));
                 highlightHintHelper(currDirection, newTileStates[1]);
                 break;
         }
@@ -256,11 +257,6 @@ const CrosswordGrid = ({
                 // TODO: Add you won message
             }
         }
-        // Check required because hint states need to be initialized first
-        if (hintStates.length > 0) {
-            const newHintStates = updateHintText(progress, tileStates, hintStates, settings.errorCheckMode);
-            setHintStates(newHintStates);
-        }
     }, [progress]);
     /**
      * Re-focus crossword on start + exiting settings menu
@@ -270,6 +266,20 @@ const CrosswordGrid = ({
             gridRef?.current?.focus();
         }
     }, [canEdit]);
+    /**
+     * Whenever the settings are changed, re-apply stylings to tiles and hints 
+     */
+    useEffect(() => {
+        // Check required because states need to be initialized first
+        if (hintStates.length > 0) {
+            const newHintStates = updateHintText(progress, tileStates, hintStates, settings.errorCheckMode);
+            setHintStates(newHintStates);
+        }
+        if (tileStates.length > 0) {
+            const newTileStates = recolorTiles(data, tileStates, settings.errorCheckMode);
+            setTileStates(newTileStates);
+        }
+    }, [progress, settings]);
     return (
         <div 
             className="p-6 select-none border border-black relative focus:outline-0"
@@ -278,6 +288,36 @@ const CrosswordGrid = ({
             onKeyDown={onKeyDown}
             ref={gridRef}
         >
+            <AnimatePresence>
+                {!hasWon && !canEdit && (
+                    <>
+                        <motion.button 
+                            className="absolute inset-0 bg-[#00000080] z-10" 
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.15 }}
+                            type="button"
+                            onClick={() => { setCanEdit(true); }}
+                        />
+                    </> 
+                )}
+            </AnimatePresence>
+            <div className="flex flex-row gap-1 justify-end">
+                {/* <CrosswordMenu 
+                    hasWon={hasWon}
+                    canEdit={canEdit}
+                    setCanEdit={setCanEdit}
+                    handleAction={handleAction}
+                /> */}
+                <CrosswordSettingsButton
+                    hasWon={hasWon} 
+                    settings={settings}
+                    setSettings={setSettings}
+                    canEdit={canEdit}
+                    setCanEdit={setCanEdit}
+                />
+            </div>
             <div className="flex flex-col md:flex-row gap-8">
                 <div className="flex flex-col gap-1 leading-0">
                     {/* TODO: Replace header w/ currently selected across or down word */}
