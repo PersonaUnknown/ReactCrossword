@@ -621,3 +621,133 @@ export const recolorTiles = (
     }
     return newTiles;
 }
+/**
+ * Replace the character in the current tile to the correct answer
+ * @param data crossword data
+ * @param tiles crossword tile data
+ * @param progress current word progress
+ */
+export const revealLetter = (
+    data: CrosswordData2,
+    tiles: TileState[],
+    progress: WordProgress[],
+): [TileState[], WordProgress[]] => {
+    const index = getCurrTileIndex(tiles);
+    const newTiles = [...tiles];
+    const tile = newTiles[index];
+    const answer = data.tiles[index].character;
+    tile.character = answer;
+    const newProgress = updateWordProgress(progress, tiles, tile.acrossId, tile.downId);
+    return [newTiles, newProgress];
+}
+/**
+ * Replace all the tiles in the same direction and word of the current tile to the correct answer
+ * @param tiles crossword tile data
+ * @param progress current word progress
+ * @param direction whether to reveal an across or down word
+ */
+export const revealWord = (
+    tiles: TileState[],
+    progress: WordProgress[],
+    direction: WordDirection
+): [TileState[], WordProgress[]] => {
+    const index = getCurrTileIndex(tiles);
+    const newTiles = [...tiles];
+    const selectedTile = newTiles[index];
+    const acrossIndex = selectedTile.acrossId;
+    const downIndex = selectedTile.downId;
+    if (direction === "across") {
+        if (acrossIndex !== -1) {
+            const acrossTiles = newTiles.filter(tile => tile.acrossId === acrossIndex)
+            for (let i = 0; i < acrossTiles.length; i++) {
+                const tile = acrossTiles[i];
+                const acrossAnswer = progress.find(word => word.index === acrossIndex);
+                if (acrossAnswer) {
+                    tile.character = acrossAnswer.answer[i];
+                } 
+            }
+        }
+    } else {
+        if (downIndex !== -1) {
+            const downTiles = newTiles.filter(tile => tile.downId === downIndex)
+            for (let i = 0; i < downTiles.length; i++) {
+                const tile = downTiles[i];
+                const downAnswer = progress.find(word => word.index === downIndex);
+                if (downAnswer) {
+                    tile.character = downAnswer.answer[i];
+                } 
+            }
+        }
+    }
+    const newProgress = updateWordProgress(progress, newTiles, acrossIndex, downIndex);
+    return [newTiles, newProgress];
+}
+/**
+ * Auto-solve the puzzle
+ * @param data crossword data
+ * @param tiles crossword tile data
+ * @param progress current word progress
+ */
+export const revealGrid = (
+    data: CrosswordData2,
+    tiles: TileState[],
+    progress: WordProgress[]
+): [TileState[], WordProgress[]] => {
+    const newTiles = [...tiles];
+    for (let i = 0; i < newTiles.length; i++) {
+        const tile = newTiles[i];
+        const answer = data.tiles[i].character;
+        tile.character = answer;
+    }
+    const newProgress = [...progress];
+    for (const word of progress) {
+        word.correct = true;
+    }
+    return [newTiles, newProgress];
+}
+/**
+ * Check if the currently selected tile is correct
+ * @param data crossword data
+ * @param tiles crossword tile data
+ */
+export const checkLetter = (
+    data: CrosswordData2,
+    tiles: TileState[]
+): TileState[] => {
+    const index = getCurrTileIndex(tiles);
+    const newTiles = [...tiles];
+    const tile = newTiles[index];
+    const answer = data.tiles[index].character;
+    if (tile.character !== "") {
+        tile.charHighlight = tile.character === answer ? "correct" : "wrong";
+    }
+    return newTiles;
+}
+/**
+ * Check if the currently selected tile's word is correct
+ * @param data crossword data
+ * @param tiles crossword tile data
+ * @param direction whether to check across or down
+ */
+export const checkWord = (
+    data: CrosswordData2,
+    tiles: TileState[],
+    direction: WordDirection
+) => {
+    const index = getCurrTileIndex(tiles);
+    const newTiles = [...tiles];
+    const currTile = newTiles[index];
+    const selectedTiles = direction === "across" ?
+        newTiles.map((tileData, index) => ({ tileData, index })).filter(tile => tile.tileData.acrossId === currTile.acrossId) :
+        newTiles.map((tileData, index) => ({ tileData, index })).filter(tile => tile.tileData.downId === currTile.downId);
+    console.log(selectedTiles);
+    for (const tile of selectedTiles) {
+        const { index } = tile;
+        const { character } = tile.tileData;
+        const answer = data.tiles[index].character;
+        if (character !== "") {
+            newTiles[index].charHighlight = character === answer ? "correct" : "wrong";
+        }
+    }
+    return newTiles;
+}

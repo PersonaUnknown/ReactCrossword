@@ -1,12 +1,11 @@
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { CrosswordData2, CrosswordSettings, HintState, TileState, WordDirection, WordProgress } from "../../../types/types";
-import { checkWordProgress, flipWordDirection, getArrowKeyIndex, getTileClasses, highlightHint, highlightTile, LARGE_TILE_SIZE, recolorTiles, typeTile, updateHintText, updateWordProgress } from "../../../utils/crossword";
-// // import CrosswordHint from "./CrosswordHint";
-// import CrosswordMenu from "./CrosswordMenu";
+import type { CrosswordData2, CrosswordGridAction, CrosswordSettings, HintState, TileState, WordDirection, WordProgress } from "../../../types/types";
+import { checkLetter, checkWord, checkWordProgress, flipWordDirection, getArrowKeyIndex, getTileClasses, highlightHint, highlightTile, LARGE_TILE_SIZE, recolorTiles, revealGrid, revealLetter, revealWord, typeTile, updateHintText, updateWordProgress } from "../../../utils/crossword";
+import CrosswordHint from "./CrosswordHint";
+import CrosswordMenu from "../CrosswordMenu";
 import CrosswordSettingsButton from "./CrosswordSettingsButton";
 import CrosswordTile from "./CrosswordTile";
-import CrosswordHint from "./CrosswordHint";
 
 interface Props {
     data: CrosswordData2;
@@ -169,6 +168,42 @@ const CrosswordGrid = ({
         e.preventDefault();
     }
     /**
+     * Function handler for 
+     * @param call the action you want to call and any parameters needed to call it
+     */
+    const handleAction = (call: CrosswordGridAction) => {
+        const { action } = call;
+        switch (action) {
+            case "revealWord":
+                const statePostWordReveal = revealWord(tileStates, progress, currDirection);
+                setTileStates(statePostWordReveal[0]);
+                setProgress(statePostWordReveal[1]);
+                break;
+            case "revealLetter":
+                const statePostLetterReveal = revealLetter(data, tileStates, progress);
+                setTileStates(statePostLetterReveal[0]);
+                setProgress(statePostLetterReveal[1]);
+                break;
+            case "revealGrid":
+                const completedGrid = revealGrid(data, tileStates, progress);
+                setTileStates(completedGrid[0]);
+                setProgress(completedGrid[1]);
+                break;
+            case "checkLetter":
+                setTileStates(checkLetter(data, tileStates));
+                break;
+            case "checkWord":
+                setTileStates(checkWord(data, tileStates, currDirection));
+                break;
+            case "checkGrid":
+                const newTileStates = recolorTiles(data, tileStates, true);
+                setTileStates(newTileStates);
+                break;
+            default:
+                break;
+        }
+    }
+    /**
      * Init crossword progress and tile data.
      * Init starting word to highlight
      */
@@ -304,12 +339,12 @@ const CrosswordGrid = ({
                 )}
             </AnimatePresence>
             <div className="flex flex-row gap-1 justify-end">
-                {/* <CrosswordMenu 
+                <CrosswordMenu 
                     hasWon={hasWon}
                     canEdit={canEdit}
                     setCanEdit={setCanEdit}
                     handleAction={handleAction}
-                /> */}
+                />
                 <CrosswordSettingsButton
                     hasWon={hasWon} 
                     settings={settings}
