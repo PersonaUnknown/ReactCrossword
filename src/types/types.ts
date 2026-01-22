@@ -1,5 +1,3 @@
-import type { NumberMap } from "motion";
-
 export interface CrosswordGridAction {
     action: CrosswordGridActions;
     parameter: any;

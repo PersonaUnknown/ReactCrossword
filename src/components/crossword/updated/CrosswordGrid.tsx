@@ -1,7 +1,7 @@
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { CrosswordData2, HintState, TileState, WordDirection, WordProgress } from "../../../types/types";
-import { flipWordDirection, getTileClasses, highlightHint, highlightTile, LARGE_TILE_SIZE } from "../../../utils/crossword";
+import type { CrosswordData2, CrosswordSettings, HintState, TileState, WordDirection, WordProgress } from "../../../types/types";
+import { checkWordProgress, flipWordDirection, getArrowKeyIndex, getCurrTileIndex, getTileClasses, highlightHint, highlightTile, LARGE_TILE_SIZE, typeTile, updateHintText, updateWordProgress } from "../../../utils/crossword";
 // // import CrosswordHint from "./CrosswordHint";
 // import CrosswordMenu from "./CrosswordMenu";
 // import CrosswordSettingsButton from "./CrosswordSettingsButton";
@@ -31,10 +31,15 @@ const CrosswordGrid = ({
     /**
      * State / Ref Definition
      */
+    const [canEdit, setCanEdit] = useState<boolean>(true);
     const [currDirection, setCurrDirection] = useState<WordDirection>("across"); // Keeps track of whether to highlight across or down
     const [progress, setProgress] = useState<WordProgress[]>([]);
+    const [settings, setSettings] = useState<CrosswordSettings>({ 
+        errorCheckMode: false
+    });
     const [tileStates, setTileStates] = useState<TileState[]>([]);
     const [hintStates, setHintStates] = useState<HintState[]>([]);
+    const gridRef = useRef<HTMLDivElement>(null);
     const acrossHints = hintStates.filter(hint => hint.direction === "across");
     const downHints = hintStates.filter(hint => hint.direction === "down");
     /**
@@ -55,7 +60,19 @@ const CrosswordGrid = ({
     const onTileClick = (
         index: number
     ) => {
-        const newTileStates = highlightTile(tileStates, currDirection, index);
+        // Check if there is a valid across / down word available
+        let directionCheck = currDirection;
+        if (currDirection === "across") {
+            if (tileStates[index].acrossId === -1) {
+                directionCheck = "down";
+            }
+        } else {
+            if (tileStates[index].downId === -1) {
+                directionCheck = "across";
+            }
+        } 
+        // Highlight tile and hint
+        const newTileStates = highlightTile(tileStates, directionCheck, index);
         const newDirection = newTileStates[1];
         setTileStates(newTileStates[0]);
         setCurrDirection(newDirection);
@@ -92,16 +109,60 @@ const CrosswordGrid = ({
     const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
         const key = e.key;
         switch (key) {
+            case "Tab":
+            case "Enter":
+                // TODO: Highlight next word
+                break;
+            case "ArrowUp":
+                // TODO: Move up
+                onTileClick(getArrowKeyIndex(data, tileStates, "up"));
+                break;
+            case "ArrowDown":
+                // TODO: Move down
+                onTileClick(getArrowKeyIndex(data, tileStates, "down"));
+                break;
+            case "ArrowLeft":
+                // TODO: Move left
+                onTileClick(getArrowKeyIndex(data, tileStates, "left"));
+                break;
+            case "ArrowRight":
+                // TODO: Move right
+                onTileClick(getArrowKeyIndex(data, tileStates, "right"));
+                break;
+            case "Backspace":
+                // TODO: Delete and move backwards
+                break;
+            case "Delete":
+                // TODO: Clear and don't move selection
+                break;
             case " ":
+                // Flip word direction
                 const flippedTileStates = flipWordDirection(tileStates, currDirection);
-                const newTileStates = flippedTileStates[0];
-                const newDirection = flippedTileStates[1];
-                setTileStates(newTileStates);
-                setCurrDirection(newDirection);
-                const currSelectedTileIndex = newTileStates.findIndex(tile => tile.tileHighlight === "dark");
-                highlightHintHelper(newDirection, currSelectedTileIndex);
+                setTileStates(flippedTileStates[0]);
+                setCurrDirection(flippedTileStates[1]);
+                const currSelectedTileIndex = flippedTileStates[0].findIndex(tile => tile.tileHighlight === "dark");
+                highlightHintHelper(flippedTileStates[1], currSelectedTileIndex);
                 break;
             default:
+                // Type in character
+                const parsedChar = key.toUpperCase();
+                if (!canEdit || parsedChar.length !== 1 || !/[a-zA-Z]/.test(parsedChar)) {
+                    console.log(canEdit);
+                    return;
+                }
+                const typeTargetIndex = tileStates.findIndex(tile => tile.tileHighlight === "dark");
+                const newTileStates = typeTile(
+                    tileStates, 
+                    data,
+                    currDirection,
+                    typeTargetIndex, 
+                    parsedChar,
+                );
+                const currTile = newTileStates[0][typeTargetIndex];
+                const updatedWordProgress = updateWordProgress(progress, newTileStates[0], currTile.acrossId, currTile.downId);
+                setProgress(updatedWordProgress);
+                setTileStates(newTileStates[0]);
+                highlightHintHelper(currDirection, newTileStates[1]);
                 break;
         }
         e.preventDefault();
@@ -121,8 +182,9 @@ const CrosswordGrid = ({
             const { across, down } = wordData;
             if (across) {
                 const tileIndices = tiles
-                    .filter(tile => tile.across === wordIndex)
-                    .map((_, index) => index);
+                    .map((data, index) => ({ data, index }))
+                    .filter(tile => tile.data.across === wordIndex)
+                    .map(tile => tile.index);
                 initProgress.push({
                     type: "across",
                     index: wordIndex,
@@ -143,8 +205,9 @@ const CrosswordGrid = ({
             }
             if (down) {
                 const tileIndices = tiles
-                    .filter(tile => tile.down === wordIndex)
-                    .map((_, index) => index);
+                    .map((data, index) => ({ data, index }))
+                    .filter(tile => tile.data.down === wordIndex)
+                    .map(tile => tile.index);
                 initProgress.push({
                     type: "down",
                     index: wordIndex,
@@ -181,13 +244,39 @@ const CrosswordGrid = ({
         setProgress(initProgress);
         setHintStates(initHints);
     }, []);
+    /**
+     * Check if game is complete on word progress change
+     */
+    useEffect(() => {
+        // Check required because progress needs to be initialized first
+        if (canEdit && progress.length > 0) {
+            const hasWon = checkWordProgress(progress);
+            if (hasWon) {
+                setCanEdit(false);
+                // TODO: Add you won message
+            }
+        }
+        // Check required because hint states need to be initialized first
+        if (hintStates.length > 0) {
+            const newHintStates = updateHintText(progress, tileStates, hintStates, settings.errorCheckMode);
+            setHintStates(newHintStates);
+        }
+    }, [progress]);
+    /**
+     * Re-focus crossword on start + exiting settings menu
+     */
+    useEffect(() => {
+        if (canEdit) {
+            gridRef?.current?.focus();
+        }
+    }, [canEdit]);
     return (
         <div 
             className="p-6 select-none border border-black relative focus:outline-0"
             role="application"
             tabIndex={0}
             onKeyDown={onKeyDown}
-            // ref={gridRef}
+            ref={gridRef}
         >
             <div className="flex flex-col md:flex-row gap-8">
                 <div className="flex flex-col gap-1 leading-0">
@@ -256,6 +345,19 @@ const CrosswordGrid = ({
                     }
                 </div>
             </div>
+            {progress.map((word, index) => {
+                const key = `progress-${index}`;
+                const current = word.tiles.map(tile => {
+                    const char = tileStates[tile].character;
+                    return char === "" ? "_" : char;
+                });
+                const isCorrect = word.correct ? "Correct" : "Wrong";
+                return (
+                    <div key={key}>
+                        {word.index} Current: {current} Answer: {word.answer} State: {isCorrect}
+                    </div>
+                )
+            })}
         </div>
     );
 };
