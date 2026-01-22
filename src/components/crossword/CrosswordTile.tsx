@@ -1,112 +1,34 @@
-import { forwardRef,useImperativeHandle, useState, type Ref } from "react";
 import { twMerge } from "tailwind-merge";
-import type { CrosswordTileRef } from "../../types/refs";
-import type { CrosswordGridAction, CrosswordLetter, CrosswordTileState } from "../../types/types";
-import { DARK_HIGHLIGHT_TILE_COLOR, INCORRECT_TEXT_COLOR, LARGE_TILE_SIZE, LIGHT_HIGHLIGHT_TILE_COLOR } from "../../utils/crossword";
+import type { TileState } from "../../utils/types";
+import { getTileCharColor, getTileHighlightColor, LARGE_TILE_SIZE } from "../../utils/crossword";
 
 interface Props {
-    data: CrosswordLetter;
-    index: number;
-    className?: string;
-    handleAction: (call: CrosswordGridAction) => void;
+    tile: TileState;
+    className?: string;    
+    onClick: () => void;
 }
 
 /**
  * Individual Crossword Tile used with Crossword Grid to make a crossword puzzle
  */
-const CrosswordTile = forwardRef(({
-    data,
-    index,
+const CrosswordTile = ({
+    tile,
     className="",
-    handleAction
-}: Props,
-    ref: Ref<CrosswordTileRef>
-) => {
+    onClick
+}: Props) => {
     const {
-        type,
-        cornerValue,
+        charHighlight,
+        tileHighlight,
         character,
-        across,
-        down
-    } = data;
-    const [state, setState] = useState<CrosswordTileState>("idle");
-    const [backgroundColor, setBackgroundColor] = useState<string>("#ffffff");
-    const [textColor, setTextColor] = useState<string>("#000000");
-    const [currChar, setCurrChar] = useState<string>("");
-    /**
-     * Handle highlighting / selecting tile + word
-     */
-    const onTileClick = () => {
-        handleAction({ action: "highlight", parameter: index });
-    }
-    /**
-     * Highlight tiles differently
-     */
-    const darkHighlight = () => {
-        setBackgroundColor(DARK_HIGHLIGHT_TILE_COLOR);
-    }
-    const lightHighlight = () => {
-        setBackgroundColor(LIGHT_HIGHLIGHT_TILE_COLOR);
-    }
-    const removeHighlight = () =>{
-        setBackgroundColor("#ffffff");
-    }
-    /**
-     * Checks if the current or new input character matches the character it's supposed to be.
-     * Highlights the text color if it's correct or not
-     */
-    const checkTile = (char?: string) => {
-        const parsedChar = char === undefined ? currChar.toUpperCase() : char.toUpperCase();
-        if (parsedChar.length > 0 && parsedChar !== character) {
-            setTextColor(INCORRECT_TEXT_COLOR);
-        } else {
-            setTextColor("#000000");
-        }
-    }
-    const removeTextColor = () => {
-        setTextColor("#000000");
-    }
-    /**
-     * Getter Methods
-     */
-    const getAcrossWordIndex = () => { return across; }
-    const getDownWordIndex = () => { return down; }
-    const getState = () => { return state; }
-    const getChar = () => { return currChar; }
-    /**
-     * Setter Methods
-     */
-    const updateState = (newState: CrosswordTileState) => {
-        setState(newState);
-    }
-    const updateChar = (char: string) => {
-        if (char.length === 0) {
-            setCurrChar("");
-        } else {
-            setCurrChar(char.charAt(0));
-        }
-    }
-    /**
-     * CrosswordTileRef handler
-     */
-    useImperativeHandle(ref, () => ({
-        darkHighlight: darkHighlight,
-        lightHighlight: lightHighlight,
-        removeHighlight: removeHighlight,
-        getAcrossWordIndex: getAcrossWordIndex,
-        getDownWordIndex: getDownWordIndex,
-        updateState: updateState,
-        getState: getState,
-        updateChar: updateChar,
-        getChar: getChar,
-        checkTile: checkTile,
-        removeTextColor: removeTextColor
-    }));
+        cornerValue
+    } = tile;
+    const backgroundColor = getTileHighlightColor(tileHighlight);
+    const textColor = getTileCharColor(charHighlight);
     /* 
      * Render black tile if tile is not associated with a character / word.
      * NOTE: Uses inline-block align-bottom to ensure black tile and tiles with leters in them aligns with other tiles
      */
-    if (type === "background") {
+    if (tileHighlight === "background") {
         return (
             <div 
                 className={twMerge(
@@ -135,16 +57,19 @@ const CrosswordTile = forwardRef(({
                 backgroundColor: backgroundColor
             }}
             type="button"
-            onClick={onTileClick}
+            onClick={onClick}
         >
             <div className="absolute text-lg top-0 left-1">
                 {cornerValue < 0 ? "" : cornerValue}
             </div>
-            <div className="text-4xl" style={{ color: textColor }}>
-                {currChar}
+            <div 
+                className="text-4xl" 
+                style={{ color: textColor }}
+            >
+                {character}
             </div>
         </button>
     );
-});
+};
 
 export default CrosswordTile;

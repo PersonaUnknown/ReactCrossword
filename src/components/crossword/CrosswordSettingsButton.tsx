@@ -2,7 +2,7 @@ import { AnimatePresence, motion } from "motion/react";
 import React, { useCallback, useEffect, useState } from "react";
 import { IoMdSettings } from "react-icons/io";
 import { MdClose, MdOutlineCheckBox, MdOutlineCheckBoxOutlineBlank } from "react-icons/md";
-import type { CrosswordSettings } from "../../types/types";
+import type { CrosswordSettings } from "../../utils/types";
 
 interface Props {
     hasWon: boolean;
@@ -92,7 +92,7 @@ const CrosswordSettingsButton = ({
                             <div className="flex flex-row gap-4 justify-between items-center">
                                 <div className="flex flex-col text-left">
                                     <h3 className="font-bold"> Error check mode </h3>
-                                    <p className="text-[#666]"> Marks incorrect letters with a diagonal line</p>
+                                    <p className="text-[#666]"> Marks incorrect and correct letters</p>
                                 </div>
                                 <button 
                                     type="button"

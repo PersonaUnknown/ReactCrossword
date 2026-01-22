@@ -1,4 +1,4 @@
-import type { CrosswordData, CrosswordData2, HintState, TileState, WordDirection, WordProgress } from "../types/types";
+import type { CrosswordData, HintState, TileState, WordDirection, WordProgress } from "./types";
 
 /**
  * Config
@@ -39,175 +39,6 @@ export const getTileClasses = (
     }
     return classNames.join(" ");
 }
-/**
- * Get list of indices of target row
- * @param index index of tile
- * @param width length of crossword
- */
-export const getRowIndices = (
-    index: number,
-    width: number
-): number[] =>{
-    const rowNumber = Math.floor(index / width);
-    const startingRowIndex = rowNumber * width;
-    const indices = [];
-    for (let i = 0; i < width; i++) {
-        indices.push(startingRowIndex + i);
-    }
-    return indices;
-}
-/**
- * Get list of indices of target column
- * @param index index of tile
- * @param width length of crossword
- * @param height height of crossword
- */
-export const getColumnIndices = (
-    index: number,
-    width: number,
-    height: number
-): number[] => {
-    const indices = [];
-    const columnNumber = index % width;
-    for (let i = 0; i < height; i++) {
-        indices.push(columnNumber + i * width);
-    }
-    return indices;
-}
-
-/**
- * Get index in crossword (keyboard controls)
- */
-export const getIndexAbove = (data: CrosswordData, index: number) => {
-    const { width, height, tiles } = data;
-    let startIndex = index - width < 0 ? (height - 1) * width : index - width;
-    while (startIndex !== index) {
-        if (tiles[startIndex].type === "word") {
-            break;
-        }
-        startIndex = startIndex - width < 0 ? (height - 1) * width : startIndex - width;
-    }
-    return startIndex;
-}
-export const getIndexBelow = (data: CrosswordData, index: number) => {
-    const { width, tiles } = data;
-    let startIndex = (index + width) % tiles.length;
-    while (startIndex !== index) {
-        if (tiles[startIndex].type === "word") {
-            break;
-        }
-        startIndex = (startIndex + width) % tiles.length;
-    }
-    return startIndex;
-}
-export const getIndexLeft = (data: CrosswordData, index: number) => {
-    const { tiles } = data;
-    let startIndex = index === 0 ? tiles.length - 1 : index - 1;
-    while (startIndex !== index) {
-        if (tiles[startIndex].type === "word") {
-            break;
-        }
-        startIndex = startIndex === 0 ? tiles.length - 1 : startIndex - 1;
-    }
-    return startIndex;
-}
-export const getIndexRight = (data: CrosswordData, index: number) => {
-    const { tiles } = data;
-    let startIndex = (index + 1) % tiles.length; 
-    while (startIndex !== index) {
-        if (tiles[startIndex].type === "word") {
-            break;
-        }
-        startIndex = (startIndex + 1) % tiles.length;
-    }
-    return startIndex;
-}
-/**
- * Get the next index to highlight after typing
- */
-export const getIndexPostTyping = (
-    data: CrosswordData, 
-    direction: WordDirection,
-    index: number
-) => {
-    const { tiles, across, down } = data;
-    let outputIndex = direction === "across" ?
-        getIndexRight(data, index) :
-        getIndexBelow(data, index);
-    if (direction === "across") {
-        if (tiles[outputIndex].across === tiles[index].across) {
-            return outputIndex;
-        }
-        let acrossIndex = tiles[index].across;
-        for (const [key, value] of across) {
-            if (key > acrossIndex) {
-                return value.startIndex;
-            }
-        }
-    } else {
-        let downIndex = tiles[index].down;
-        if (outputIndex > index && tiles[outputIndex].down === tiles[index].down) {
-            return outputIndex;
-        }
-        for (const [key, value] of down) {
-            if (key > downIndex) {
-                return value.startIndex;
-            }
-        }
-    }
-    return index;
-}
-/**
- * If you hit Tab or Enter, get the next across word or down index.
- * Rotate back to the start of across if at the bottom or down.
- */
-export const getNextWordIndex = (
-    data: CrosswordData, 
-    direction: WordDirection, 
-    index: number
-): { index: number, direction: WordDirection } => {
-    const { across, down } = data;
-    if (direction === "across") {
-        for (const [key, value] of across) {
-            if (key > index) {
-                return {
-                    index: value.startIndex,
-                    direction: "across"
-                };
-            }    
-        }
-        
-        const downEntries = [...down.entries()];
-        if (downEntries.length > 0) {
-            return {
-                index: downEntries[0][1].startIndex,
-                direction: "down"
-            };
-        }
-    } else {
-        for (const [key, value] of down) {
-            if (key > index) {
-                return {
-                    index: value.startIndex,
-                    direction: "down"
-                };
-            }    
-        }
-    }
-    const acrossEntries = [...across.entries()];
-    if (acrossEntries.length === 0) {
-        return {
-            index: 0,
-            direction: "across"
-        }
-    }
-    return {
-        index: acrossEntries[0][1].startIndex,
-        direction: "across"
-    };
-}
-
-// New
 /**
  * Given a tile's current state, output the appropriate background color it should be
  * @param state 
@@ -366,7 +197,7 @@ export const highlightHint = (
 /**
  * Get index in crossword (keyboard controls)
  */
-export const getIndexAbove2 = (data: CrosswordData2, index: number) => {
+export const getIndexAbove = (data: CrosswordData, index: number) => {
     const { width, height, tiles } = data;
     let startIndex = index - width < 0 ? (height - 1) * width : index - width;
     while (startIndex !== index) {
@@ -377,7 +208,7 @@ export const getIndexAbove2 = (data: CrosswordData2, index: number) => {
     }
     return startIndex;
 }
-export const getIndexBelow2 = (data: CrosswordData2, index: number) => {
+export const getIndexBelow = (data: CrosswordData, index: number) => {
     const { width, tiles } = data;
     let startIndex = (index + width) % tiles.length;
     while (startIndex !== index) {
@@ -388,7 +219,7 @@ export const getIndexBelow2 = (data: CrosswordData2, index: number) => {
     }
     return startIndex;
 }
-export const getIndexLeft2 = (data: CrosswordData2, index: number) => {
+export const getIndexLeft = (data: CrosswordData, index: number) => {
     const { tiles } = data;
     let startIndex = index === 0 ? tiles.length - 1 : index - 1;
     while (startIndex !== index) {
@@ -399,7 +230,7 @@ export const getIndexLeft2 = (data: CrosswordData2, index: number) => {
     }
     return startIndex;
 }
-export const getIndexRight2 = (data: CrosswordData2, index: number) => {
+export const getIndexRight = (data: CrosswordData, index: number) => {
     const { tiles } = data;
     let startIndex = (index + 1) % tiles.length; 
     while (startIndex !== index) {
@@ -419,13 +250,13 @@ export const getIndexRight2 = (data: CrosswordData2, index: number) => {
  */
 export const getNextTileIndex = (
     tiles: TileState[],
-    data: CrosswordData2,
+    data: CrosswordData,
     direction: WordDirection
 ): number => {
     const currSelectedTileIndex = getCurrTileIndex(tiles);
     let outputIndex = direction === "across" ?
-        getIndexRight2(data, currSelectedTileIndex) :
-        getIndexBelow2(data, currSelectedTileIndex);
+        getIndexRight(data, currSelectedTileIndex) :
+        getIndexBelow(data, currSelectedTileIndex);
     if (direction === "across") {
         if (tiles[outputIndex].acrossId === tiles[currSelectedTileIndex].acrossId) {
             return outputIndex;
@@ -448,7 +279,7 @@ export const getNextTileIndex = (
  */
 export const typeTile = (
     tiles: TileState[],
-    data: CrosswordData2,
+    data: CrosswordData,
     direction: WordDirection,
     index: number,
     char: string,
@@ -476,7 +307,7 @@ export const typeTile = (
  * @param direction specific arrow key direction / direction to move tile highlight selection
  */
 export const getArrowKeyIndex = (
-    data: CrosswordData2, 
+    data: CrosswordData, 
     tiles: TileState[],
     direction: "up" | "down" | "left" | "right"
 ): number => {
@@ -484,13 +315,13 @@ export const getArrowKeyIndex = (
     switch (direction) {
         case "up":
         default:
-            return getIndexAbove2(data, index);
+            return getIndexAbove(data, index);
         case "down":
-            return getIndexBelow2(data, index);
+            return getIndexBelow(data, index);
         case "left":
-            return getIndexLeft2(data, index);
+            return getIndexLeft(data, index);
         case "right":
-            return getIndexRight2(data, index);
+            return getIndexRight(data, index);
     }
 }
 /**
@@ -605,7 +436,7 @@ export const updateHintText = (
  * @param errorCheckMode whether to highlight text differently on incorrect answers
  */
 export const recolorTiles = (
-    data: CrosswordData2,
+    data: CrosswordData,
     tiles: TileState[],
     errorCheckMode: boolean
 ): TileState[] => {
@@ -628,7 +459,7 @@ export const recolorTiles = (
  * @param progress current word progress
  */
 export const revealLetter = (
-    data: CrosswordData2,
+    data: CrosswordData,
     tiles: TileState[],
     progress: WordProgress[],
 ): [TileState[], WordProgress[]] => {
@@ -689,7 +520,7 @@ export const revealWord = (
  * @param progress current word progress
  */
 export const revealGrid = (
-    data: CrosswordData2,
+    data: CrosswordData,
     tiles: TileState[],
     progress: WordProgress[]
 ): [TileState[], WordProgress[]] => {
@@ -711,7 +542,7 @@ export const revealGrid = (
  * @param tiles crossword tile data
  */
 export const checkLetter = (
-    data: CrosswordData2,
+    data: CrosswordData,
     tiles: TileState[]
 ): TileState[] => {
     const index = getCurrTileIndex(tiles);
@@ -730,7 +561,7 @@ export const checkLetter = (
  * @param direction whether to check across or down
  */
 export const checkWord = (
-    data: CrosswordData2,
+    data: CrosswordData,
     tiles: TileState[],
     direction: WordDirection
 ) => {
@@ -740,7 +571,6 @@ export const checkWord = (
     const selectedTiles = direction === "across" ?
         newTiles.map((tileData, index) => ({ tileData, index })).filter(tile => tile.tileData.acrossId === currTile.acrossId) :
         newTiles.map((tileData, index) => ({ tileData, index })).filter(tile => tile.tileData.downId === currTile.downId);
-    console.log(selectedTiles);
     for (const tile of selectedTiles) {
         const { index } = tile;
         const { character } = tile.tileData;
@@ -750,4 +580,29 @@ export const checkWord = (
         }
     }
     return newTiles;
+}
+/**
+ * Get the appropriate response to say when user fills out entire grid
+ */
+export const getGridCompletionMessage = (
+    data: CrosswordData,
+    tiles: TileState[]
+): "correct" | "wrong" | "incomplete" => {
+    let isGridFullyFilledOut = true;
+    let isCrosswordWrong = false;
+    for (let i = 0; i < tiles.length; i++) {
+        const tile = tiles[i];
+        const tileData = data.tiles[i];
+        if (tile.character !== "") {
+            isGridFullyFilledOut = false;
+        } else {
+            if (tile.character !== tileData.character) {
+                isCrosswordWrong = false;
+            }
+        }
+    }
+    if (isGridFullyFilledOut) {
+        return isCrosswordWrong ? "wrong" : "correct";
+    }
+    return "wrong";
 }

@@ -1,8 +1,7 @@
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { CrosswordHintRef, CrosswordTileRef } from "../../types/refs";
-import type { CrosswordData, CrosswordSettings, CrosswordGridAction, WordDirection, WordStatus } from "../../types/types";
-import { getColumnIndices, getIndexAbove, getIndexBelow, getIndexLeft, getIndexPostTyping, getIndexRight, getNextWordIndex, getRowIndices, getTileClasses, LARGE_TILE_SIZE } from "../../utils/crossword";
+import type { CrosswordData, CrosswordGridAction, CrosswordSettings, HintState, TileState, WordDirection, WordProgress } from "../../utils/types";
+import { checkLetter, checkWord, checkWordProgress, flipWordDirection, getArrowKeyIndex, getTileClasses, highlightHint, highlightTile, LARGE_TILE_SIZE, recolorTiles, revealGrid, revealLetter, revealWord, typeTile, updateHintText, updateWordProgress } from "../../utils/crossword";
 import CrosswordHint from "./CrosswordHint";
 import CrosswordMenu from "./CrosswordMenu";
 import CrosswordSettingsButton from "./CrosswordSettingsButton";
@@ -19,250 +18,89 @@ const CrosswordGrid = ({
     data
 }: Props
 ) => {
+    /**
+     * Parse Crossword Data
+     */
     const {
-        title,
         tiles,
         width,
         height,
-        across,
-        down,
+        words
     } = data;
+    /**
+     * State / Ref Definition
+     */
+    const [canEdit, setCanEdit] = useState<boolean>(true);
+    const [currDirection, setCurrDirection] = useState<WordDirection>("across"); // Keeps track of whether to highlight across or down
+    const [progress, setProgress] = useState<WordProgress[]>([]);
     const [hasWon, setHasWon] = useState<boolean>(false);
-    const [canEdit, setCanEdit] = useState<boolean>(true); // To disable editing crossword on game won
+    const [inputStatus, setInputStatus] = useState<"correct" | "wrong" | "incomplete">("incomplete");
     const [settings, setSettings] = useState<CrosswordSettings>({ 
         errorCheckMode: false
     });
-    const [wordStatuses, setWordStatuses] = useState<WordStatus[]>([]); // Used to re-render and call useEffect to double-check statusesRef if user won
-    const statusesRef = useRef<WordStatus[]>([]); // To check if all words are correct to determine if user won
-    const [direction, setDirection] = useState<WordDirection>("across"); // Whether to highlight across or down when clicking on a selected tile 
-    const acrossHintRefs = useRef<CrosswordHintRef[]>([]);
-    const downHintRefs = useRef<CrosswordHintRef[]>([]);
-    const tileRefs = useRef<CrosswordTileRef[]>([]);
-    const highlightedTileIndices = useRef<number[]>([]); // Refs of what tiles are highlighted to make it easier to remove the highlighting
-    const lastHighlightedHint = useRef<{ direction: WordDirection, index: number }>(null); // To easily remove highlighting from the previous one
-    const gridRef = useRef<HTMLDivElement>(null); // Used to re-focus grid when exiting menus
+    const [tileStates, setTileStates] = useState<TileState[]>([]);
+    const [hintStates, setHintStates] = useState<HintState[]>([]);
+    const gridRef = useRef<HTMLDivElement>(null);
+    const activeHint = hintStates.find(hint => hint.highlight);
+    const acrossHints = hintStates.filter(hint => hint.direction === "across");
+    const downHints = hintStates.filter(hint => hint.direction === "down");
     /**
-     * Highlight across or down tiles
+     * Methods / Hooks
      */
-    const highlight = (index: number, targetDirection: WordDirection | null = null) => {
-        const selectedTileState = tileRefs.current[index].getState();
-        const acrossIndex = tileRefs.current[index].getAcrossWordIndex();
-        const downIndex = tileRefs.current[index].getDownWordIndex();
-        switch (selectedTileState) {
-            case "idle":
-                if (targetDirection === "across") {
-                    if (across.has(acrossIndex)) {
-                        highlightAcross(index);
-                    } else {
-                        highlightDown(index);
-                    }
-                    return;
-                } else if (targetDirection === "down") {
-                    if (down.has(downIndex)) {
-                        highlightDown(index);
-                    } else {
-                        highlightAcross(index);
-                    }
-                    return;
-                }
-                if (direction === "across") {
-                    if (across.has(acrossIndex)) {
-                        highlightAcross(index);
-                    } else {
-                        highlightDown(index);
-                    }
-                } else if (direction === "down") {
-                    if (down.has(downIndex)) {
-                        highlightDown(index);
-                    } else {
-                        highlightAcross(index);
-                    }
-                }
-                break;
-            case "adjacent-across":
-                highlightAcross(index);
-                break;
-            case "adjacent-down":
-                highlightDown(index);
-                break;
-            case "selected-across":
-                if (!down.has(downIndex)) {
-                    return;
-                }
-                highlightDown(index);
-                break;
-            case "selected-down":
-                if (!across.has(acrossIndex)) {
-                    return;
-                }
-                highlightAcross(index);
-                break;
-        }
-    }
     /**
-     * Highlight all tiles that belong to the word across.
-     * If no word exists, do nothing.
+     * Highlight tile(s) and hint when interacted with
      */
-    const highlightAcross = (index: number) => {
-        const acrossIndex = tileRefs.current[index].getAcrossWordIndex();
-        // Remove previous highlights
-        for (const idx of highlightedTileIndices.current) {
-            tileRefs.current[idx].removeHighlight();
-            tileRefs.current[idx].updateState("idle");
-        }
-        // Highlight new across word
-        const indices = getRowIndices(index, width);
-        for (const idx of indices) {
-            if (tileRefs.current[idx].getAcrossWordIndex() !== acrossIndex) {
-                continue;
-            }
-            if (idx === index) {
-                tileRefs.current[index].darkHighlight();    
-                tileRefs.current[index].updateState("selected-across");    
-            } else {
-                tileRefs.current[idx].lightHighlight();
-                tileRefs.current[idx].updateState("adjacent-across");
-            }
-        }
-        highlightedTileIndices.current = [...indices];
-        setDirection("across");
-        highlightHint("across", acrossIndex);
+    const highlightHintHelper = (
+        direction: WordDirection,
+        index: number
+    ) => {
+        const hintId = direction === "across" ? tiles[index].across : tiles[index].down;
+        const hintIndex = hintStates.findIndex(hint => hint.index === hintId);
+        const newHintStates = highlightHint(hintStates, hintIndex);
+        setHintStates(newHintStates);
     }
-    /**
-     * Highlight all tiles that belong to the word down
-     * If no word exists, do nothing.
-     */
-    const highlightDown = (index: number) => {
-        const downIndex = tileRefs.current[index].getDownWordIndex();
-        // Remove previous highlights
-        for (const idx of highlightedTileIndices.current) {
-            tileRefs.current[idx].removeHighlight();
-            tileRefs.current[idx].updateState("idle");
-        }
-        // Highlight new across word
-        const indices = getColumnIndices(index, width, height);
-        for (const idx of indices) {
-            if (tileRefs.current[idx].getDownWordIndex() !== downIndex) {
-                continue;
+    const onTileClick = (
+        index: number
+    ) => {
+        // Check if there is a valid across / down word available
+        let directionCheck = currDirection;
+        if (currDirection === "across") {
+            if (tileStates[index].acrossId === -1) {
+                directionCheck = "down";
             }
-            if (idx === index) {
-                tileRefs.current[index].darkHighlight();    
-                tileRefs.current[index].updateState("selected-down");    
-            } else {
-                tileRefs.current[idx].lightHighlight();
-                tileRefs.current[idx].updateState("adjacent-down");
+        } else {
+            if (tileStates[index].downId === -1) {
+                directionCheck = "across";
             }
-        }
-        highlightedTileIndices.current = [...indices];
-        setDirection("down");
-        highlightHint("down", downIndex);
+        } 
+        // Highlight tile and hint
+        const newTileStates = highlightTile(tileStates, directionCheck, index);
+        const newDirection = newTileStates[1];
+        setTileStates(newTileStates[0]);
+        setCurrDirection(newDirection);
+        highlightHintHelper(newDirection, index);
     }
-    /**
-     * Highlights the specific crossword hint
-     * @param direction whether to highlight an across or down word hint
-     * @param id number associated with word
-     */
-    const highlightHint = (direction: WordDirection, id: number) => {
-        const refs = direction === "across" ? acrossHintRefs.current : downHintRefs.current;
-        if (lastHighlightedHint.current) {
-            const { direction, index } = lastHighlightedHint.current;
-            if (direction === "across") {
-                acrossHintRefs?.current[index]?.unhighlight();
-            } else if (direction === "down") {
-                downHintRefs?.current[index]?.unhighlight();
-            }
-            lastHighlightedHint.current = null;
-        }
-        let hintIndex = 0;
-        for (const hint of refs) {
-            const index = hint.getIndex();
-            if (index === id) {
-                hint.highlight();
-                break;
-            }
-            hintIndex++;
-        }
-        lastHighlightedHint.current = {
-            direction: direction,
-            index: hintIndex
-        }
-    }
-    /**
-     * Check if the letter, word, or grid is correct (only tiles not hints)
-     */
-    const checkLetter = () => {
-        const index = getCurrentSelectedTileIndex();
-        tileRefs?.current[index]?.checkTile();
-    }
-    const checkWord = () => {
-        for (const index of highlightedTileIndices.current) {
-            tileRefs?.current[index]?.checkTile();
-        }
-    }
-    const checkGrid = () => {
-        for (const tile of tileRefs.current) {
-            tile.checkTile();
-        }
-    }
-    /**
-     * Reveal the letter, word, or grid tiles
-     */
-    const revealLetter = () => {
-        const index = getCurrentSelectedTileIndex();
-        if (index < 0 || index >= tiles.length) {
+    const onHintClick = (
+        direction: WordDirection,
+        index: number
+    ) => { 
+        if (hintStates[index].highlight) {
             return;
         }
-        const correctLetter = tiles[index].character;
-        type(correctLetter);
-    }
-    const revealWord = () => {
-        // Fill in all the characters in highlighted section
-        for (let i = 0; i < highlightedTileIndices.current.length; i++) {
-            const index = highlightedTileIndices.current[i];
-            const correctLetter = tiles[index].character;
-            tileRefs.current[index].updateChar(correctLetter);
-        }
-        // Mark the highlighted word as correct
-        const newWordStatuses = [...statusesRef.current];
-        if (direction === "across") {
-            const acrossIndex = tileRefs.current[highlightedTileIndices.current[0]].getAcrossWordIndex();
-            const acrossRef = acrossHintRefs.current.find(ref => ref.getIndex() === acrossIndex);
-            acrossRef?.onCorrect();
-            const statusIndex = newWordStatuses.findIndex(status => status.direction === "across" && status.id === acrossIndex);
-            newWordStatuses[statusIndex].correct = true;
-        } else {
-            const downIndex = tileRefs.current[highlightedTileIndices.current[0]].getDownWordIndex();
-            const downRef = acrossHintRefs.current.find(ref => ref.getIndex() === downIndex);
-            downRef?.onCorrect();
-            const statusIndex = newWordStatuses.findIndex(status => status.direction === "down" && status.id === downIndex);
-            newWordStatuses[statusIndex].correct = true;
-        }
-        // Check if other words were correct
-        setTimeout(() => {
-            revealLetter();
-        }, 100);
-    }
-    const revealGrid = () => {
-        for (let i = 0; i < tiles.length; i++) {
-            const correctChar = tiles[i].character;
-            const tileRef = tileRefs.current[i];
-            tileRef.updateChar(correctChar);
-        }
-        const hints = [...acrossHintRefs.current, ...downHintRefs.current];
-        for (const hint of hints) {
-            if (settings.errorCheckMode) {
-                hint.onCorrect();
-            } else {
-                hint.fadeText();
+        const wordId = hintStates[index].index;
+        const startIndex = direction === "across" ?
+            words.get(wordId)?.across?.startIndex :
+            words.get(wordId)?.down?.startIndex;
+        if (startIndex !== undefined) {
+            let newTiles = highlightTile(tileStates, currDirection, startIndex);
+            if (direction !== currDirection) {
+                newTiles = flipWordDirection(newTiles[0], currDirection);
             }
+            setTileStates(newTiles[0]);
+            setCurrDirection(newTiles[1]);
         }
-        const newWordStatuses = [...statusesRef.current];
-        for (let i = 0; i < newWordStatuses.length; i++) {
-            const status = newWordStatuses[i];
-            status.correct = true;
-        }
-        statusesRef.current = newWordStatuses;
-        setWordStatuses(newWordStatuses); 
+        const newHintStates = highlightHint(hintStates, index);
+        setHintStates(newHintStates);
     }
     /**
      * Type character into tile and move the selection to a new tile that has no character in it.
@@ -272,258 +110,191 @@ const CrosswordGrid = ({
      */
     const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
         const key = e.key;
-        const currSelectedTileIndex = getCurrentSelectedTileIndex();
         switch (key) {
             case "Tab":
             case "Enter":
-                const index = direction === "across" ? 
-                    tileRefs.current[currSelectedTileIndex].getAcrossWordIndex() :
-                    tileRefs.current[currSelectedTileIndex].getDownWordIndex();
-                const nextWordIndexData = getNextWordIndex(data, direction, index);
-                highlight(nextWordIndexData.index, nextWordIndexData.direction);
+                // TODO: Highlight next word
                 break;
             case "ArrowUp":
-                highlight(getIndexAbove(data, currSelectedTileIndex));
+                // TODO: Move up
+                onTileClick(getArrowKeyIndex(data, tileStates, "up"));
                 break;
             case "ArrowDown":
-                highlight(getIndexBelow(data, currSelectedTileIndex));
+                // TODO: Move down
+                onTileClick(getArrowKeyIndex(data, tileStates, "down"));
                 break;
             case "ArrowLeft":
-                highlight(getIndexLeft(data, currSelectedTileIndex));
+                // TODO: Move left
+                onTileClick(getArrowKeyIndex(data, tileStates, "left"));
                 break;
             case "ArrowRight":
-                highlight(getIndexRight(data, currSelectedTileIndex));
+                // TODO: Move right
+                onTileClick(getArrowKeyIndex(data, tileStates, "right"));
                 break;
             case "Backspace":
-                if (tileRefs.current[currSelectedTileIndex].getChar() === "") {
-                    highlight(getIndexLeft(data, currSelectedTileIndex));
-                } else {
-                    type("");
-                }
+                // TODO: Delete and move backwards
                 break;
             case "Delete":
-                type("");
+                // TODO: Clear and don't move selection
                 break;
             case " ":
-                if (currSelectedTileIndex === undefined) {
-                    return;
-                }
-                highlight(currSelectedTileIndex);
+                // Flip word direction
+                const flippedTileStates = flipWordDirection(tileStates, currDirection);
+                setTileStates(flippedTileStates[0]);
+                setCurrDirection(flippedTileStates[1]);
+                const currSelectedTileIndex = flippedTileStates[0].findIndex(tile => tile.tileHighlight === "dark");
+                highlightHintHelper(flippedTileStates[1], currSelectedTileIndex);
                 break;
             default:
-                if (!canEdit) {
+                // Type in character
+                const parsedChar = key.toUpperCase();
+                if (!canEdit || parsedChar.length !== 1 || !/[a-zA-Z]/.test(parsedChar)) {
                     return;
                 }
-                if (key.length === 1 && /[a-zA-Z]/.test(key)) {
-                    type(key);
-                }
+                const typeTargetIndex = tileStates.findIndex(tile => tile.tileHighlight === "dark");
+                const newTileStates = typeTile(
+                    tileStates, 
+                    data,
+                    currDirection,
+                    typeTargetIndex, 
+                    parsedChar,
+                );
+                const currTile = newTileStates[0][typeTargetIndex];
+                const updatedWordProgress = updateWordProgress(progress, newTileStates[0], currTile.acrossId, currTile.downId);
+                setProgress(updatedWordProgress);
+                setTileStates(recolorTiles(data, newTileStates[0], settings.errorCheckMode));
+                highlightHintHelper(currDirection, newTileStates[1]);
                 break;
         }
         e.preventDefault();
-    }
-    /**
-     * Type a character into the currently selected tile
-     * @param char input character
-     * @param index override to target a specific tile index
-     * @returns 
-     */
-    const type = (char: string, index?: number) => {
-        // 1. Type in the current
-        const parsedChar = char.toUpperCase();
-        const currSelectedTileIndex = index !== undefined ? index : getCurrentSelectedTileIndex();
-        if (currSelectedTileIndex < 0 && currSelectedTileIndex >= tileRefs.current.length) {
-            return;
-        } 
-        tileRefs.current[currSelectedTileIndex].updateChar(parsedChar);
-        // 2. Check if the word is fully typed out and is correct
-        if (settings.errorCheckMode) {
-            tileRefs.current[currSelectedTileIndex].checkTile(char);
-        }
-        const acrossIndex = tileRefs.current[currSelectedTileIndex].getAcrossWordIndex();
-        const downIndex = tileRefs.current[currSelectedTileIndex].getDownWordIndex();
-        const newWordStatuses = [...statusesRef.current];
-        if (acrossIndex !== -1) {
-            let currAcrossWordTyped = "";
-            const acrossTiles = tileRefs.current.filter(tile => tile.getAcrossWordIndex() === acrossIndex);
-            for (const tile of acrossTiles) {
-                if (tileRefs.current[currSelectedTileIndex] === tile) {
-                    // Because useState is not updated at this point for current tile
-                    currAcrossWordTyped += parsedChar;
-                } else {
-                    currAcrossWordTyped += tile.getChar() === "" ? "_" : tile.getChar();
-                }
-            }
-            const acrossWordData = across.get(acrossIndex);
-            const acrossRef = acrossHintRefs.current.find(ref => ref.getIndex() === acrossIndex);
-            const statusIndex = newWordStatuses.findIndex(status => status.direction === "across" && status.id === acrossIndex);
-            if (acrossWordData) {
-                if (currAcrossWordTyped === acrossWordData.word) {
-                    if (settings.errorCheckMode) {
-                        acrossRef?.onCorrect();
-                    }
-                    newWordStatuses[statusIndex].correct = true;
-                } else if (!currAcrossWordTyped.includes("_") && currAcrossWordTyped !== acrossWordData.word) {
-                    if (settings.errorCheckMode) {
-                        acrossRef?.onIncorrect();
-                    }
-                    newWordStatuses[statusIndex].correct = false;
-                } 
-                if (!settings.errorCheckMode && !currAcrossWordTyped.includes("_")) {
-                    acrossRef?.fadeText();
-                }
-            }
-        }
-        if (downIndex !== -1) {
-            let currDownWordTyped = "";
-            const downTiles = tileRefs.current.filter(tile => tile.getDownWordIndex() === downIndex);
-            for (const tile of downTiles) {
-                if (tileRefs.current[currSelectedTileIndex] === tile) {
-                    // Because useState is not updated at this point for current tile
-                    currDownWordTyped += parsedChar;
-                } else {
-                    currDownWordTyped += tile.getChar() === "" ? "_" : tile.getChar();
-                }
-            }
-            const downWordData = down.get(downIndex);
-            const downRef = downHintRefs.current.find(ref => ref.getIndex() === downIndex);
-            const statusIndex = newWordStatuses.findIndex(status => status.direction === "down" && status.id === downIndex);
-            if (downWordData) {
-                if (currDownWordTyped === downWordData.word) {
-                    if (settings.errorCheckMode) {
-                        downRef?.onCorrect();
-                    }
-                    newWordStatuses[statusIndex].correct = true;
-                } else if (!currDownWordTyped.includes("_") && currDownWordTyped !== downWordData.word) {
-                    if (settings.errorCheckMode) {
-                        downRef?.onIncorrect();
-                    }
-                    newWordStatuses[statusIndex].correct = false;
-                } 
-                if (!settings.errorCheckMode && !currDownWordTyped.includes("_")) {
-                    downRef?.fadeText();
-                }
-            }
-        }
-        setWordStatuses(newWordStatuses);
-        statusesRef.current = newWordStatuses;
-        // 3. Move the selection to a new 
-        if (char === "") {
-            return;
-        }
-        highlight(getIndexPostTyping(data, direction, getCurrentSelectedTileIndex()));
-    }   
-    /**
-     * Get index of current tile selected (-1 if cannot be found)
-     */
-    const getCurrentSelectedTileIndex = (): number => {
-        const currSelectedTileIndex = highlightedTileIndices.current.find(index => {
-            const state = tileRefs.current[index].getState();
-            return state === "selected-across" || state === "selected-down";
-        });
-        if (currSelectedTileIndex === undefined) {
-            return -1;
-        }
-        return currSelectedTileIndex;
     }
     /**
      * Function handler for 
      * @param call the action you want to call and any parameters needed to call it
      */
     const handleAction = (call: CrosswordGridAction) => {
-        const { action, parameter } = call;
+        const { action } = call;
         switch (action) {
-            case "highlightAcross":
-                highlightAcross(parameter);
-                break;
-            case "highlightDown":
-                highlightDown(parameter);
-                break;
-            case "highlight":
-                highlight(parameter);
-                break;
             case "revealWord":
-                revealWord();
+                const statePostWordReveal = revealWord(tileStates, progress, currDirection);
+                setTileStates(statePostWordReveal[0]);
+                setProgress(statePostWordReveal[1]);
                 break;
             case "revealLetter":
-                revealLetter();
+                const statePostLetterReveal = revealLetter(data, tileStates, progress);
+                setTileStates(statePostLetterReveal[0]);
+                setProgress(statePostLetterReveal[1]);
                 break;
             case "revealGrid":
-                revealGrid();
+                const completedGrid = revealGrid(data, tileStates, progress);
+                setTileStates(completedGrid[0]);
+                setProgress(completedGrid[1]);
                 break;
             case "checkLetter":
-                checkLetter();
+                setTileStates(checkLetter(data, tileStates));
                 break;
             case "checkWord":
-                checkWord();
+                setTileStates(checkWord(data, tileStates, currDirection));
                 break;
             case "checkGrid":
-                checkGrid();
+                const newTileStates = recolorTiles(data, tileStates, true);
+                setTileStates(newTileStates);
                 break;
             default:
                 break;
         }
     }
     /**
-     * Init crossword to highlight first possible across word
-     * Init status of all words in crossword to determine win condition
+     * Init crossword progress and tile data.
+     * Init starting word to highlight
      */
     useEffect(() => {
-        const highlightFirstAcross = () => {
-            for (let i = 0; i < tiles.length; i++) {
-                const across = tiles[i].across;
-                if (across > 0) {
-                    highlightAcross(i);
-                    break;
+        const initHints: HintState[] = [];
+        const initTiles: TileState[] = [];
+        const initProgress: WordProgress[] = [];
+        let startWordIndex = -1;
+        for (const word of words) {
+            const wordIndex = word[0];
+            const wordData = word[1];
+            const { across, down } = wordData;
+            if (across) {
+                const tileIndices = tiles
+                    .map((data, index) => ({ data, index }))
+                    .filter(tile => tile.data.across === wordIndex)
+                    .map(tile => tile.index);
+                initProgress.push({
+                    type: "across",
+                    index: wordIndex,
+                    answer: across.word,
+                    tiles: tileIndices,
+                    correct: false
+                });
+                initHints.push({
+                    direction: "across",
+                    hint: across.hint,
+                    index: wordIndex,
+                    highlight: startWordIndex === -1,
+                    textHighlight: "none"
+                });
+                if (startWordIndex <= -1) {
+                    startWordIndex = across.startIndex;
                 }
             }
-            highlightHint("across", 1);
-            const statuses: WordStatus[] = [];
-            for (const [key, _] of across) {
-                statuses.push({
-                    direction: "across",
-                    id: key,
+            if (down) {
+                const tileIndices = tiles
+                    .map((data, index) => ({ data, index }))
+                    .filter(tile => tile.data.down === wordIndex)
+                    .map(tile => tile.index);
+                initProgress.push({
+                    type: "down",
+                    index: wordIndex,
+                    answer: down.word,
+                    tiles: tileIndices,
                     correct: false
                 });
-            }   
-            for (const [key, _] of down) {
-                statuses.push({
+                initHints.push({
                     direction: "down",
-                    id: key,
-                    correct: false
+                    hint: down.hint,
+                    index: wordIndex,
+                    highlight: false,
+                    textHighlight: "none"
                 });
             }
-            setWordStatuses(statuses);
-            statusesRef.current = statuses;
-        };
-        highlightFirstAcross();
+        }
+        for (const tile of tiles) {
+            const {
+                across,
+                down,
+                cornerValue
+            } = tile;
+            initTiles.push({
+                character: "",
+                cornerValue: cornerValue,
+                charHighlight: "none",
+                tileHighlight: tile.type === "background" ? "background" : "none",
+                acrossId: across,
+                downId: down
+            });
+        }
+        const initHighlightedTiles = highlightTile(initTiles, currDirection, startWordIndex);
+        setTileStates(initHighlightedTiles[0]);
+        setProgress(initProgress);
+        setHintStates(initHints);
     }, []);
     /**
-     * Check for win condition every time the word statuses changes.
-     * useState to trigger useEffect but useRef to get accurate value when checking
+     * Check if game is complete on word progress change
      */
-    const checkForWin = useCallback((): boolean => {
-        if (statusesRef.current.length === 0) {
-            return false;
-        }
-        for (const status of statusesRef.current) {
-            if (!status.correct) {
-                return false;
+    useEffect(() => {
+        // Check required because progress needs to be initialized first
+        if (canEdit && progress.length > 0) {
+            const hasWon = checkWordProgress(progress);
+            if (hasWon) {
+                setCanEdit(false);
+                setHasWon(true);
+                // TODO: Add you won message
             }
         }
-        return true;
-    }, []);
-    useEffect(() => {
-        if (!canEdit || hasWon) {
-            return;
-        }
-        if (checkForWin()) {
-            alert("You Won!");
-            setCanEdit(false);
-            setHasWon(true);
-        } else {
-            // alert("Uh oh! There's some errors in your answer.");
-        }
-    }, [wordStatuses, canEdit, hasWon, checkForWin]);
+    }, [progress]);
     /**
      * Re-focus crossword on start + exiting settings menu
      */
@@ -536,71 +307,33 @@ const CrosswordGrid = ({
      * Whenever the settings are changed, re-apply stylings to tiles and hints 
      */
     useEffect(() => {
-        const { errorCheckMode } = settings;
-        for (const tile of tileRefs.current) {
-            if (errorCheckMode) {
-                tile.checkTile();
-            } else {
-                tile.removeTextColor();
-            }
+        // Check required because states need to be initialized first
+        if (hintStates.length > 0) {
+            const newHintStates = updateHintText(progress, tileStates, hintStates, settings.errorCheckMode);
+            setHintStates(newHintStates);
         }
-        for (const hint of acrossHintRefs.current) {
-            hint.getIndex()
-            let currAcrossWordTyped = "";
-            const acrossIndex = hint.getIndex();
-            const acrossTiles = tileRefs.current.filter(tile => tile.getAcrossWordIndex() === acrossIndex);
-            for (const tile of acrossTiles) {
-                currAcrossWordTyped += tile.getChar() === "" ? "_" : tile.getChar();
-            }
-            const acrossWordData = across.get(acrossIndex);
-            if (acrossWordData) {
-                if (currAcrossWordTyped === acrossWordData.word) {
-                    if (settings.errorCheckMode) {
-                        hint?.onCorrect();
-                    }
-                } else if (!currAcrossWordTyped.includes("_") && currAcrossWordTyped !== acrossWordData.word) {
-                    if (settings.errorCheckMode) {
-                        hint?.onIncorrect();
-                    }
-                } 
-                if (!settings.errorCheckMode && !currAcrossWordTyped.includes("_")) {
-                    hint?.fadeText();
-                }
-            }
+        if (tileStates.length > 0) {
+            const newTileStates = recolorTiles(data, tileStates, settings.errorCheckMode);
+            setTileStates(newTileStates);
         }
-        for (const hint of downHintRefs.current) {
-            hint.getIndex()
-            let currAcrossWordTyped = "";
-            const downIndex = hint.getIndex();
-            const downTiles = tileRefs.current.filter(tile => tile.getDownWordIndex() === downIndex);
-            for (const tile of downTiles) {
-                currAcrossWordTyped += tile.getChar() === "" ? "_" : tile.getChar();
-            }
-            const downWordData = down.get(downIndex);
-            if (downWordData) {
-                if (currAcrossWordTyped === downWordData.word) {
-                    if (settings.errorCheckMode) {
-                        hint?.onCorrect();
-                    }
-                } else if (!currAcrossWordTyped.includes("_") && currAcrossWordTyped !== downWordData.word) {
-                    if (settings.errorCheckMode) {
-                        hint?.onIncorrect();
-                    }
-                } 
-                if (!settings.errorCheckMode && !currAcrossWordTyped.includes("_")) {
-                    hint?.fadeText();
-                }
-            }
-        }
-    }, [settings]);
+    }, [progress, settings]);
     return (
         <div 
-            className="p-6 select-none border border-black relative focus:outline-0"
+            className="p-6 pt-4 select-none border border-black relative focus:outline-0"
             role="application"
             tabIndex={0}
             onKeyDown={onKeyDown}
             ref={gridRef}
         >
+            <AnimatePresence>
+                {hasWon && (
+                    <motion.div
+                        className="absolute inset-0 bg-[#00000080] z-10"
+                    >
+                        Congratulations you won!
+                    </motion.div>
+                )}
+            </AnimatePresence>
             <AnimatePresence>
                 {!hasWon && !canEdit && (
                     <>
@@ -633,82 +366,83 @@ const CrosswordGrid = ({
             </div>
             <div className="flex flex-col md:flex-row gap-8">
                 <div className="flex flex-col gap-1 leading-0">
-                    <h2 className="text-lg font-bold">{title}</h2>
+                    <h2 className="text-lg font-bold">{activeHint?.index}. {activeHint?.hint}</h2>
                     <div
                         style={{
                             width: LARGE_TILE_SIZE * width,
                             height: LARGE_TILE_SIZE * height
                         }}
                     >
-                        {tiles.map((tile, index) => {
+                        {tileStates.map((tile, index) => {
                             const row = Math.floor(index / width);
                             const column = index % width;
                             const className = getTileClasses(row, column, height);
                             const key = `tile-${index}`;
                             return (
                                 <CrosswordTile 
-                                    key={key}
-                                    ref={(el) => {
-                                        if (el) {
-                                            tileRefs.current[index] = el;
-                                        }
+                                    key={key} 
+                                    tile={tile}
+                                    className={className}
+                                    onClick={() => {
+                                        onTileClick(index);
                                     }}
-                                    data={tile} 
-                                    index={index}
-                                    handleAction={handleAction}
-                                    className={className} 
                                 />
                             )
                         })}
                     </div>
                 </div>
                 <div className="flex flex-col gap-2">
-                    <section className="flex flex-col">
-                        <h2 className="text-lg font-bold">Across</h2>
-                        {[...across.entries()].map(([row, data], index) => {
-                            const { hint, startIndex } = data;
-                            const key = `across-${row}`;
-                            return (
-                                <CrosswordHint 
-                                    key={key}
-                                    index={row}
-                                    hint={hint}
-                                    ref={(el) => {
-                                        if (el) {
-                                            acrossHintRefs.current[index] = el;
-                                        }
-                                    }}
-                                    onClick={() => {
-                                        highlightAcross(startIndex);
-                                    }}
-                                />
-                            );
-                        })}
-                    </section>
-                    <section className="flex flex-col">
-                        <h2 className="text-lg font-bold">Down</h2>
-                        {[...down.entries()].map(([col, data], index) => {
-                            const { hint, startIndex } = data;
-                            const key = `down-${col}`;
-                            return (
-                                <CrosswordHint 
-                                    key={key}
-                                    index={col}
-                                    hint={hint}
-                                    ref={(el) => {
-                                        if (el) {
-                                            downHintRefs.current[index] = el;
-                                        }
-                                    }}
-                                    onClick={() => {
-                                        highlightDown(startIndex);
-                                    }}
-                                />
-                            );
-                        })}
-                    </section>
+                    {acrossHints.length > 0 &&
+                        <section className="flex flex-col">
+                            <h2 className="text-lg font-bold">Across</h2>
+                            {acrossHints.map((hint, index) => {
+                                const key = `across-${index}`;
+                                const hintIndex = hintStates.findIndex(state => state === hint);
+                                return (
+                                    <CrosswordHint 
+                                        key={key}    
+                                        state={hint}
+                                        onClick={() => {
+                                            onHintClick("across", hintIndex);
+                                        }}
+                                    />
+                                );
+                            })}
+                        </section>
+                    }
+                    {downHints.length > 0 &&
+                        <section className="flex flex-col">
+                            <h2 className="text-lg font-bold">Down</h2>
+                            {downHints.map((hint, index) => {
+                                const key = `down-${index}`;
+                                const hintIndex = hintStates.findIndex(state => state === hint);
+                                return (
+                                    <CrosswordHint 
+                                        key={key}    
+                                        state={hint}
+                                        onClick={() => {
+                                            onHintClick("down", hintIndex);
+                                        }}
+                                    />
+                                );
+                            })}
+                        </section>
+                    }
                 </div>
             </div>
+            {/* {progress.map((word, index) => {
+                const key = `progress-${index}`;
+                const current = word.tiles.map(tile => {
+                    const char = tileStates[tile].character;
+                    return char === "" ? "_" : char;
+                });
+                const isCorrect = word.correct ? "Correct" : "Wrong";
+                return (
+                    <div key={key}>
+                        {word.index} Current: {current} Answer: {word.answer} State: {isCorrect}
+                    </div>
+                )
+            })} */}
         </div>
     );
 };

@@ -1,7 +1,7 @@
 import { IoCaretBackOutline } from "react-icons/io5";
 import { Link } from "react-router-dom";
 import CrosswordGrid from "./CrosswordGrid";
-import type { CrosswordData2 } from "../../../types/types";
+import type { CrosswordData2 } from "../../utils/types";
 
 interface Props {
     data: CrosswordData2

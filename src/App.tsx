@@ -1,7 +1,7 @@
 import './App.css'
 import { Route, BrowserRouter as Router, Routes } from "react-router-dom";
 import HomePage from './pages/HomePage';
-import CrosswordPuzzle from './components/crossword/updated/CrosswordPuzzle';
+import CrosswordPuzzle from './components/crossword/CrosswordPuzzle';
 import { exampleMiniCrossword, singleRowCrossword } from './utils/crosswordData'
 
 function App() {

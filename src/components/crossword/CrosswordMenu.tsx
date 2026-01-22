@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { IoIosArrowDown } from "react-icons/io";
-import type { CrosswordGridAction } from "../../types/types";
+import type { CrosswordGridAction } from "../../utils/types";
 import { twMerge } from "tailwind-merge";
 
 interface Props {
