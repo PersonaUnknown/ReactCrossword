@@ -199,13 +199,15 @@ export const highlightHint = (
  */
 export const getIndexAbove = (data: CrosswordData, index: number) => {
     const { width, height, tiles } = data;
-    let startIndex = index - width < 0 ? (height - 1) * width : index - width;
+    let startIndex = index - width < 0 ? height * width + index - width : index - width;
+    console.log(startIndex);
     while (startIndex !== index) {
         if (tiles[startIndex].type === "word") {
             break;
         }
-        startIndex = startIndex - width < 0 ? (height - 1) * width : startIndex - width;
+        startIndex = startIndex - width < 0 ? height * width + startIndex - width : startIndex - width;
     }
+    console.log(startIndex);
     return startIndex;
 }
 export const getIndexBelow = (data: CrosswordData, index: number) => {
