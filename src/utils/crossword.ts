@@ -1,10 +1,16 @@
-import type { CrosswordData, HintState, TileState, WordDirection, WordProgress } from "./types";
+import type {
+	CrosswordData,
+	HintState,
+	TileState,
+	WordDirection,
+	WordProgress,
+} from "./types";
 
 /**
  * Config
  */
 export const LARGE_TILE_SIZE = 80;
-export const DARK_HIGHLIGHT_TILE_COLOR = "#9999FF";  // Color taken from https://www.boatloadpuzzles.com/playcrossword
+export const DARK_HIGHLIGHT_TILE_COLOR = "#9999FF"; // Color taken from https://www.boatloadpuzzles.com/playcrossword
 export const LIGHT_HIGHLIGHT_TILE_COLOR = "#CCCCFF"; // Color taken from https://www.boatloadpuzzles.com/playcrossword
 export const CORRECT_TEXT_COLOR = "#00d04b";
 export const INCORRECT_TEXT_COLOR = "#ff0022";
@@ -20,93 +26,82 @@ export const MIDDLE_COLUMN_TILE_CLASSES = "border-t border-r border-black";
  * @param width length of crossword
  */
 export const getTileClasses = (
-    row: number,
-    column: number,
-    height: number
+	row: number,
+	column: number,
+	height: number,
 ): string => {
-    const classNames = [];
-    if (row === 0) {
-        classNames.push(FIRST_ROW_TILE_CLASSES);
-    }
-    if (column === 0) {
-        classNames.push(FIRST_COLUMN_TILE_CLASSES);    
-    }
-    if (row !== 0 && column !== 0) {    
-        classNames.push(MIDDLE_COLUMN_TILE_CLASSES);
-    }
-    if (row === height - 1) {
-        classNames.push(LAST_ROW_TILE_CLASSES);
-    }
-    return classNames.join(" ");
-}
+	const classNames = [];
+	if (row === 0) {
+		classNames.push(FIRST_ROW_TILE_CLASSES);
+	}
+	if (column === 0) {
+		classNames.push(FIRST_COLUMN_TILE_CLASSES);
+	}
+	if (row !== 0 && column !== 0) {
+		classNames.push(MIDDLE_COLUMN_TILE_CLASSES);
+	}
+	if (row === height - 1) {
+		classNames.push(LAST_ROW_TILE_CLASSES);
+	}
+	return classNames.join(" ");
+};
 /**
  * Given a tile's current state, output the appropriate background color it should be
- * @param state 
+ * @param state
  * @returns hex color of new tile text
  */
-export const getTileCharColor = (
-    state: string
-): string => {
-    switch (state) {
-        case "wrong":
-            return INCORRECT_TEXT_COLOR;
-        case "correct":
-            return CORRECT_TEXT_COLOR;
-        case "none":
-        default:
-            return "#000000";
-    }
-        
-}
+export const getTileCharColor = (state: string): string => {
+	switch (state) {
+		case "wrong":
+			return INCORRECT_TEXT_COLOR;
+		case "correct":
+			return CORRECT_TEXT_COLOR;
+		default:
+			return "#000000";
+	}
+};
 /**
  * Given a tile's current state, output the appropriate background color it should be
  * @param highlight tile highlight state
  * @returns hex color of new tile background
  */
-export const getTileHighlightColor = (
-    highlight: string
-): string => {
-    switch (highlight) {
-        case "light":
-            return LIGHT_HIGHLIGHT_TILE_COLOR;
-        case "dark":
-            return DARK_HIGHLIGHT_TILE_COLOR;
-        case "background":
-            return "#000000";
-        case "none":
-        default:
-            return "#ffffff";
-    }
-}
+export const getTileHighlightColor = (highlight: string): string => {
+	switch (highlight) {
+		case "light":
+			return LIGHT_HIGHLIGHT_TILE_COLOR;
+		case "dark":
+			return DARK_HIGHLIGHT_TILE_COLOR;
+		case "background":
+			return "#000000";
+		default:
+			return "#ffffff";
+	}
+};
 /**
  * Given a hint's state, output the appropriate text color
- * @param state 
+ * @param state
  * @returns hex color of new hint text
  */
-export const getHintTextColor = (
-    state: string
-): string => {
-    switch (state) {
-        case "none":
-            return "#000000";
-        case "complete":
-            return GRAY_TEXT_COLOR;
-        case "correct":
-            return CORRECT_TEXT_COLOR;
-        default:
-            return INCORRECT_TEXT_COLOR;
-    }
-}
+export const getHintTextColor = (state: string): string => {
+	switch (state) {
+		case "none":
+			return "#000000";
+		case "complete":
+			return GRAY_TEXT_COLOR;
+		case "correct":
+			return CORRECT_TEXT_COLOR;
+		default:
+			return INCORRECT_TEXT_COLOR;
+	}
+};
 /**
  * Given a hint's state, output the appropriate background color
  * @param state whether to highlight the hint or not
  * @returns hex color of new hint background
  */
-export const getHintHighlightColor = (
-    state: boolean
-): string => {
-    return state ? LIGHT_HIGHLIGHT_TILE_COLOR : "#ffffff";
-}
+export const getHintHighlightColor = (state: boolean): string => {
+	return state ? LIGHT_HIGHLIGHT_TILE_COLOR : "#ffffff";
+};
 /**
  * Flip crossword selection from across -> down and vice versa
  * @param tiles crossword tile data
@@ -114,15 +109,15 @@ export const getHintHighlightColor = (
  * @returns [new tile states, new direction to highlight] or unchanged if cannot flip
  */
 export const flipWordDirection = (
-    tiles: TileState[],
-    direction: WordDirection
+	tiles: TileState[],
+	direction: WordDirection,
 ): [TileState[], WordDirection] => {
-    const currSelectedTileIndex = getCurrTileIndex(tiles);
-    if (currSelectedTileIndex !== undefined) {
-        return highlightTile(tiles, direction, currSelectedTileIndex);
-    }
-    return [[...tiles], direction];
-}
+	const currSelectedTileIndex = getCurrTileIndex(tiles);
+	if (currSelectedTileIndex !== undefined) {
+		return highlightTile(tiles, direction, currSelectedTileIndex);
+	}
+	return [[...tiles], direction];
+};
 /**
  * Highlight tile in crossword grid and the rest belonging to the same word
  * @param tiles crossword tile data
@@ -131,116 +126,129 @@ export const flipWordDirection = (
  * @returns [new tile states, new direction to highlight]
  */
 export const highlightTile = (
-    tiles: TileState[],
-    direction: WordDirection,
-    index: number,
+	tiles: TileState[],
+	direction: WordDirection,
+	index: number,
 ): [TileState[], WordDirection] => {
-    const newTiles = [...tiles];
-    const selectedTile = newTiles[index];
-    if (selectedTile === undefined) {
-        return [tiles, direction];
-    }
-    // Determine whether to flip the highlight (if possible)
-    const shouldFlipDirection = selectedTile.tileHighlight === "dark";
-    const isFlipPossible = direction === "across" ? selectedTile.downId > 0 : selectedTile.acrossId > 0;
-    const targetDirection = shouldFlipDirection && isFlipPossible ?
-        direction === "across" ? 
-            "down" : 
-            "across" :
-        direction;     
-    const currWordId = targetDirection === "across" ? selectedTile.acrossId : selectedTile.downId;
-    // Remove highlighting from previous selection and highlight new selection
-    const tilesToHighlight = targetDirection === "across" ? 
-        newTiles.filter((tile, tileIndex) => index !== tileIndex && tile.acrossId === currWordId) :
-        newTiles.filter((tile, tileIndex) => index !== tileIndex && tile.downId === currWordId);
-    const previouslyHighlightedTiles = newTiles.filter(tile => 
-        tile.tileHighlight !== "none" && 
-        tile.tileHighlight !== "background"
-    );
-    for (const tile of previouslyHighlightedTiles) {
-        if (tile.tileHighlight === "background") {
-            continue;
-        }
-        tile.tileHighlight = "none";
-    }
-    selectedTile.tileHighlight = "dark";
-    for (const tile of tilesToHighlight) {
-        if (tile.tileHighlight === "background") {
-            continue;
-        }
-        tile.tileHighlight = "light";
-    }
-    return [newTiles, targetDirection];
-}
+	const newTiles = [...tiles];
+	const selectedTile = newTiles[index];
+	if (selectedTile === undefined) {
+		return [tiles, direction];
+	}
+	// Determine whether to flip the highlight (if possible)
+	const shouldFlipDirection = selectedTile.tileHighlight === "dark";
+	const isFlipPossible =
+		direction === "across"
+			? selectedTile.downId > 0
+			: selectedTile.acrossId > 0;
+	const targetDirection =
+		shouldFlipDirection && isFlipPossible
+			? direction === "across"
+				? "down"
+				: "across"
+			: direction;
+	const currWordId =
+		targetDirection === "across" ? selectedTile.acrossId : selectedTile.downId;
+	// Remove highlighting from previous selection and highlight new selection
+	const tilesToHighlight =
+		targetDirection === "across"
+			? newTiles.filter(
+					(tile, tileIndex) =>
+						index !== tileIndex && tile.acrossId === currWordId,
+				)
+			: newTiles.filter(
+					(tile, tileIndex) =>
+						index !== tileIndex && tile.downId === currWordId,
+				);
+	const previouslyHighlightedTiles = newTiles.filter(
+		(tile) =>
+			tile.tileHighlight !== "none" && tile.tileHighlight !== "background",
+	);
+	for (const tile of previouslyHighlightedTiles) {
+		if (tile.tileHighlight === "background") {
+			continue;
+		}
+		tile.tileHighlight = "none";
+	}
+	selectedTile.tileHighlight = "dark";
+	for (const tile of tilesToHighlight) {
+		if (tile.tileHighlight === "background") {
+			continue;
+		}
+		tile.tileHighlight = "light";
+	}
+	return [newTiles, targetDirection];
+};
 /**
  * Highlight hint in crossword grid given its index and direction
  * @param hints crossword hint data
  * @param index index of the selected hint
  * @returns [new tile states, new direction to highlight]
  */
-export const highlightHint = (
-    hints: HintState[],
-    index: number
-) => {
-    const newHints = [...hints];
-    if (newHints[index] == undefined) {
-       return newHints; 
-    }
-    const prevHighlightedHints = newHints.filter(hint => hint.highlight);
-    for (const hint of prevHighlightedHints) {
-        hint.highlight = false;
-    }
-    newHints[index].highlight = true;
-    return newHints;
-}
+export const highlightHint = (hints: HintState[], index: number) => {
+	const newHints = [...hints];
+	if (newHints[index] === undefined) {
+		return newHints;
+	}
+	const prevHighlightedHints = newHints.filter((hint) => hint.highlight);
+	for (const hint of prevHighlightedHints) {
+		hint.highlight = false;
+	}
+	newHints[index].highlight = true;
+	return newHints;
+};
 
 /**
  * Get index in crossword (keyboard controls)
  */
 export const getIndexAbove = (data: CrosswordData, index: number) => {
-    const { width, height, tiles } = data;
-    let startIndex = index - width < 0 ? height * width + index - width : index - width;
-    while (startIndex !== index) {
-        if (tiles[startIndex].type === "word") {
-            break;
-        }
-        startIndex = startIndex - width < 0 ? height * width + startIndex - width : startIndex - width;
-    }
-    return startIndex;
-}
+	const { width, height, tiles } = data;
+	let startIndex =
+		index - width < 0 ? height * width + index - width : index - width;
+	while (startIndex !== index) {
+		if (tiles[startIndex].type === "word") {
+			break;
+		}
+		startIndex =
+			startIndex - width < 0
+				? height * width + startIndex - width
+				: startIndex - width;
+	}
+	return startIndex;
+};
 export const getIndexBelow = (data: CrosswordData, index: number) => {
-    const { width, tiles } = data;
-    let startIndex = (index + width) % tiles.length;
-    while (startIndex !== index) {
-        if (tiles[startIndex].type === "word") {
-            break;
-        }
-        startIndex = (startIndex + width) % tiles.length;
-    }
-    return startIndex;
-}
+	const { width, tiles } = data;
+	let startIndex = (index + width) % tiles.length;
+	while (startIndex !== index) {
+		if (tiles[startIndex].type === "word") {
+			break;
+		}
+		startIndex = (startIndex + width) % tiles.length;
+	}
+	return startIndex;
+};
 export const getIndexLeft = (data: CrosswordData, index: number) => {
-    const { tiles } = data;
-    let startIndex = index === 0 ? tiles.length - 1 : index - 1;
-    while (startIndex !== index) {
-        if (tiles[startIndex].type === "word") {
-            break;
-        }
-        startIndex = startIndex === 0 ? tiles.length - 1 : startIndex - 1;
-    }
-    return startIndex;
-}
+	const { tiles } = data;
+	let startIndex = index === 0 ? tiles.length - 1 : index - 1;
+	while (startIndex !== index) {
+		if (tiles[startIndex].type === "word") {
+			break;
+		}
+		startIndex = startIndex === 0 ? tiles.length - 1 : startIndex - 1;
+	}
+	return startIndex;
+};
 export const getIndexRight = (data: CrosswordData, index: number) => {
-    const { tiles } = data;
-    let startIndex = (index + 1) % tiles.length; 
-    while (startIndex !== index) {
-        if (tiles[startIndex].type === "word") {
-            break;
-        }
-        startIndex = (startIndex + 1) % tiles.length;
-    }
-    return startIndex;
-}
+	const { tiles } = data;
+	let startIndex = (index + 1) % tiles.length;
+	while (startIndex !== index) {
+		if (tiles[startIndex].type === "word") {
+			break;
+		}
+		startIndex = (startIndex + 1) % tiles.length;
+	}
+	return startIndex;
+};
 /**
  * Get the next tile index post typing
  * @param tiles crossword tile data
@@ -249,26 +257,31 @@ export const getIndexRight = (data: CrosswordData, index: number) => {
  * @returns the index of which tile to highlight after typing
  */
 export const getNextTileIndex = (
-    tiles: TileState[],
-    data: CrosswordData,
-    direction: WordDirection
+	tiles: TileState[],
+	data: CrosswordData,
+	direction: WordDirection,
 ): number => {
-    const currSelectedTileIndex = getCurrTileIndex(tiles);
-    let outputIndex = direction === "across" ?
-        getIndexRight(data, currSelectedTileIndex) :
-        getIndexBelow(data, currSelectedTileIndex);
-    if (direction === "across") {
-        if (tiles[outputIndex].acrossId === tiles[currSelectedTileIndex].acrossId) {
-            return outputIndex;
-        }
-        return tiles.findIndex(tile => tile.acrossId > tiles[currSelectedTileIndex].acrossId);
-    } else {
-        if (tiles[outputIndex].downId === tiles[currSelectedTileIndex].downId) {
-            return outputIndex;
-        }
-        return tiles.findIndex(tile => tile.downId > tiles[currSelectedTileIndex].downId);
-    }
-}
+	const currSelectedTileIndex = getCurrTileIndex(tiles);
+	const outputIndex =
+		direction === "across"
+			? getIndexRight(data, currSelectedTileIndex)
+			: getIndexBelow(data, currSelectedTileIndex);
+	if (direction === "across") {
+		if (tiles[outputIndex].acrossId === tiles[currSelectedTileIndex].acrossId) {
+			return outputIndex;
+		}
+		return tiles.findIndex(
+			(tile) => tile.acrossId > tiles[currSelectedTileIndex].acrossId,
+		);
+	} else {
+		if (tiles[outputIndex].downId === tiles[currSelectedTileIndex].downId) {
+			return outputIndex;
+		}
+		return tiles.findIndex(
+			(tile) => tile.downId > tiles[currSelectedTileIndex].downId,
+		);
+	}
+};
 /**
  * Type in character into target tile and set selected tile index to the next possible one in word
  * @param tiles crossword tile data
@@ -279,81 +292,88 @@ export const getNextTileIndex = (
  * @returns [new tile states, index of where the new cursor location]
  */
 export const typeTile = (
-    tiles: TileState[],
-    data: CrosswordData,
-    direction: WordDirection,
-    index: number,
-    char: string,
-    errorCheckMode: boolean
+	tiles: TileState[],
+	data: CrosswordData,
+	direction: WordDirection,
+	index: number,
+	char: string,
+	errorCheckMode: boolean,
 ): [TileState[], number] => {
-    const newTiles = [...tiles];
-    newTiles[index].character = char;
-    if (errorCheckMode) {
-        const answer = data.tiles[index].character;
-        newTiles[index].charHighlight = newTiles[index].character === answer ? "correct" : "wrong"; 
-    } else {
-        newTiles[index].charHighlight = "none";
-    }
-    const nextTileIndex = index === tiles.length - 1 ? index : getNextTileIndex(newTiles, data, direction);
-    // Check if there is a valid across / down word available before final highlights
-    let directionCheck = direction;
-    if (direction === "across") {
-        if (newTiles[index].acrossId === -1) {
-            directionCheck = "down";
-        }
-    } else {
-        if (newTiles[index].downId === -1) {
-            directionCheck = "across";
-        }
-    } 
-    const finalTileStates = highlightTile(newTiles, directionCheck, nextTileIndex)[0];
-    return [finalTileStates, nextTileIndex];
-}
+	const newTiles = [...tiles];
+	newTiles[index].character = char;
+	if (errorCheckMode) {
+		const answer = data.tiles[index].character;
+		newTiles[index].charHighlight =
+			newTiles[index].character === answer ? "correct" : "wrong";
+	} else {
+		newTiles[index].charHighlight = "none";
+	}
+	const nextTileIndex =
+		index === tiles.length - 1
+			? index
+			: getNextTileIndex(newTiles, data, direction);
+	// Check if there is a valid across / down word available before final highlights
+	let directionCheck = direction;
+	if (direction === "across") {
+		if (newTiles[index].acrossId === -1) {
+			directionCheck = "down";
+		}
+	} else {
+		if (newTiles[index].downId === -1) {
+			directionCheck = "across";
+		}
+	}
+	const finalTileStates = highlightTile(
+		newTiles,
+		directionCheck,
+		nextTileIndex,
+	)[0];
+	return [finalTileStates, nextTileIndex];
+};
 /**
  * Get the index of the tile that should be highlighted after the user presses an ArrowKey
  * @param data crossword grid data
  * @param direction specific arrow key direction / direction to move tile highlight selection
  */
 export const getArrowKeyIndex = (
-    data: CrosswordData, 
-    tiles: TileState[],
-    direction: "up" | "down" | "left" | "right"
+	data: CrosswordData,
+	tiles: TileState[],
+	direction: "up" | "down" | "left" | "right",
 ): number => {
-    const index = getCurrTileIndex(tiles);
-    switch (direction) {
-        case "up":
-        default:
-            return getIndexAbove(data, index);
-        case "down":
-            return getIndexBelow(data, index);
-        case "left":
-            return getIndexLeft(data, index);
-        case "right":
-            return getIndexRight(data, index);
-    }
-}
+	const index = getCurrTileIndex(tiles);
+	switch (direction) {
+		case "down":
+			return getIndexBelow(data, index);
+		case "left":
+			return getIndexLeft(data, index);
+		case "right":
+			return getIndexRight(data, index);
+		default:
+			return getIndexAbove(data, index);
+	}
+};
 /**
  * Get the index of the currently selected tile
  * @param tiles crossword tile states
  */
-export const getCurrTileIndex = (
-    tiles: TileState[]
-) => {
-    return tiles.findIndex(tile => tile.tileHighlight === "dark");
-}
+export const getCurrTileIndex = (tiles: TileState[]) => {
+	return tiles.findIndex((tile) => tile.tileHighlight === "dark");
+};
 /**
  * Get the current input for target word
  */
 const getCurrWordInput = (
-    progress: WordProgress,
-    tiles: TileState[]
+	progress: WordProgress,
+	tiles: TileState[],
 ): string => {
-    const current = progress.tiles.map(tile => {
-        const char = tiles[tile].character;
-        return char === "" ? "_" : char;
-    }).join("");
-    return current;
-}
+	const current = progress.tiles
+		.map((tile) => {
+			const char = tiles[tile].character;
+			return char === "" ? "_" : char;
+		})
+		.join("");
+	return current;
+};
 /**
  * On typing into a tile, update the current word progress
  * @param progress word progress of current crossword
@@ -362,49 +382,47 @@ const getCurrWordInput = (
  * @param down down word number to check
  */
 export const updateWordProgress = (
-    progress: WordProgress[],
-    tiles: TileState[],
-    across: number | null,
-    down: number | null
+	progress: WordProgress[],
+	tiles: TileState[],
+	across: number | null,
+	down: number | null,
 ): WordProgress[] => {
-    const newProgress = [...progress];
-    if (across) {
-        const acrossProgress = newProgress.find(
-            progress => progress.type === "across" && 
-            progress.index === across
-        );
-        if (acrossProgress) {
-            acrossProgress.correct = getCurrWordInput(acrossProgress, tiles) === acrossProgress.answer;
-        }
-    }
-    if (down) {
-        const downProgress = newProgress.find(
-            progress => progress.type === "down" && 
-            progress.index === down
-        );
-        if (downProgress) {
-            downProgress.correct = getCurrWordInput(downProgress, tiles) === downProgress.answer;
-        }
-    }
-    return newProgress;
-}
+	const newProgress = [...progress];
+	if (across) {
+		const acrossProgress = newProgress.find(
+			(progress) => progress.type === "across" && progress.index === across,
+		);
+		if (acrossProgress) {
+			acrossProgress.correct =
+				getCurrWordInput(acrossProgress, tiles) === acrossProgress.answer;
+		}
+	}
+	if (down) {
+		const downProgress = newProgress.find(
+			(progress) => progress.type === "down" && progress.index === down,
+		);
+		if (downProgress) {
+			downProgress.correct =
+				getCurrWordInput(downProgress, tiles) === downProgress.answer;
+		}
+	}
+	return newProgress;
+};
 /**
  * Check if a crossword puzzle is complete based on your word progress
  * @param progress current progress completing each word
  */
-export const checkWordProgress = (
-    progress: WordProgress[]
-): boolean => {
-    if (progress.length === 0) {
-        return false;
-    }
-    for (const word of progress) {
-        if (!word.correct) {
-            return false;
-        }
-    }
-    return true;
-}
+export const checkWordProgress = (progress: WordProgress[]): boolean => {
+	if (progress.length === 0) {
+		return false;
+	}
+	for (const word of progress) {
+		if (!word.correct) {
+			return false;
+		}
+	}
+	return true;
+};
 /**
  * Update hint text color based on word completion
  * @param progress current progress completing each word
@@ -413,30 +431,31 @@ export const checkWordProgress = (
  * @param errorCheckMode whether to highlight text differently on incorrect answers
  */
 export const updateHintText = (
-    progress: WordProgress[],
-    tiles: TileState[],
-    hints: HintState[],
-    errorCheckMode: boolean
+	progress: WordProgress[],
+	tiles: TileState[],
+	hints: HintState[],
+	errorCheckMode: boolean,
 ): HintState[] => {
-    const newHints = [...hints];
-    for (const hint of newHints) {
-        const progressData = progress.find(word => word.type === hint.direction && word.index === hint.index);
-        if (!progressData) {
-            continue;
-        }
-        if (progressData.correct && errorCheckMode) {
-            hint.textHighlight = "correct";
-        }
-        const currWord = getCurrWordInput(progressData, tiles);
-        hint.textHighlight = currWord.includes("_") ? 
-            "none" : 
-            errorCheckMode && !progressData.correct ?
-                "wrong" : 
-                "complete";
-
-    }
-    return newHints;
-}
+	const newHints = [...hints];
+	for (const hint of newHints) {
+		const progressData = progress.find(
+			(word) => word.type === hint.direction && word.index === hint.index,
+		);
+		if (!progressData) {
+			continue;
+		}
+		if (progressData.correct && errorCheckMode) {
+			hint.textHighlight = "correct";
+		}
+		const currWord = getCurrWordInput(progressData, tiles);
+		hint.textHighlight = currWord.includes("_")
+			? "none"
+			: errorCheckMode && !progressData.correct
+				? "wrong"
+				: "complete";
+	}
+	return newHints;
+};
 /**
  * Re-color crossword tiles based on if the character input is correct or not
  * @param data crossword data
@@ -444,22 +463,22 @@ export const updateHintText = (
  * @param errorCheckMode whether to highlight text differently on incorrect answers
  */
 export const recolorTiles = (
-    data: CrosswordData,
-    tiles: TileState[],
-    errorCheckMode: boolean
+	data: CrosswordData,
+	tiles: TileState[],
+	errorCheckMode: boolean,
 ): TileState[] => {
-    const newTiles = [...tiles];
-    for (let i = 0; i < newTiles.length; i++) {
-        const tile = newTiles[i];
-        const answer = data.tiles[i].character;
-        if (errorCheckMode) {
-            tile.charHighlight = tile.character === answer ? "correct" : "wrong"; 
-        } else {
-            tile.charHighlight = "none";
-        }
-    }
-    return newTiles;
-}
+	const newTiles = [...tiles];
+	for (let i = 0; i < newTiles.length; i++) {
+		const tile = newTiles[i];
+		const answer = data.tiles[i].character;
+		if (errorCheckMode) {
+			tile.charHighlight = tile.character === answer ? "correct" : "wrong";
+		} else {
+			tile.charHighlight = "none";
+		}
+	}
+	return newTiles;
+};
 /**
  * Replace the character in the current tile to the correct answer
  * @param data crossword data
@@ -467,18 +486,23 @@ export const recolorTiles = (
  * @param progress current word progress
  */
 export const revealLetter = (
-    data: CrosswordData,
-    tiles: TileState[],
-    progress: WordProgress[],
+	data: CrosswordData,
+	tiles: TileState[],
+	progress: WordProgress[],
 ): [TileState[], WordProgress[]] => {
-    const index = getCurrTileIndex(tiles);
-    const newTiles = [...tiles];
-    const tile = newTiles[index];
-    const answer = data.tiles[index].character;
-    tile.character = answer;
-    const newProgress = updateWordProgress(progress, tiles, tile.acrossId, tile.downId);
-    return [newTiles, newProgress];
-}
+	const index = getCurrTileIndex(tiles);
+	const newTiles = [...tiles];
+	const tile = newTiles[index];
+	const answer = data.tiles[index].character;
+	tile.character = answer;
+	const newProgress = updateWordProgress(
+		progress,
+		tiles,
+		tile.acrossId,
+		tile.downId,
+	);
+	return [newTiles, newProgress];
+};
 /**
  * Replace all the tiles in the same direction and word of the current tile to the correct answer
  * @param tiles crossword tile data
@@ -486,41 +510,50 @@ export const revealLetter = (
  * @param direction whether to reveal an across or down word
  */
 export const revealWord = (
-    tiles: TileState[],
-    progress: WordProgress[],
-    direction: WordDirection
+	tiles: TileState[],
+	progress: WordProgress[],
+	direction: WordDirection,
 ): [TileState[], WordProgress[]] => {
-    const index = getCurrTileIndex(tiles);
-    const newTiles = [...tiles];
-    const selectedTile = newTiles[index];
-    const acrossIndex = selectedTile.acrossId;
-    const downIndex = selectedTile.downId;
-    if (direction === "across") {
-        if (acrossIndex !== -1) {
-            const acrossTiles = newTiles.filter(tile => tile.acrossId === acrossIndex)
-            for (let i = 0; i < acrossTiles.length; i++) {
-                const tile = acrossTiles[i];
-                const acrossAnswer = progress.find(word => word.index === acrossIndex);
-                if (acrossAnswer) {
-                    tile.character = acrossAnswer.answer[i];
-                } 
-            }
-        }
-    } else {
-        if (downIndex !== -1) {
-            const downTiles = newTiles.filter(tile => tile.downId === downIndex)
-            for (let i = 0; i < downTiles.length; i++) {
-                const tile = downTiles[i];
-                const downAnswer = progress.find(word => word.index === downIndex);
-                if (downAnswer) {
-                    tile.character = downAnswer.answer[i];
-                } 
-            }
-        }
-    }
-    const newProgress = updateWordProgress(progress, newTiles, acrossIndex, downIndex);
-    return [newTiles, newProgress];
-}
+	const index = getCurrTileIndex(tiles);
+	const newTiles = [...tiles];
+	const selectedTile = newTiles[index];
+	const acrossIndex = selectedTile.acrossId;
+	const downIndex = selectedTile.downId;
+	if (direction === "across") {
+		if (acrossIndex !== -1) {
+			const acrossTiles = newTiles.filter(
+				(tile) => tile.acrossId === acrossIndex,
+			);
+			for (let i = 0; i < acrossTiles.length; i++) {
+				const tile = acrossTiles[i];
+				const acrossAnswer = progress.find(
+					(word) => word.index === acrossIndex,
+				);
+				if (acrossAnswer) {
+					tile.character = acrossAnswer.answer[i];
+				}
+			}
+		}
+	} else {
+		if (downIndex !== -1) {
+			const downTiles = newTiles.filter((tile) => tile.downId === downIndex);
+			for (let i = 0; i < downTiles.length; i++) {
+				const tile = downTiles[i];
+				const downAnswer = progress.find((word) => word.index === downIndex);
+				if (downAnswer) {
+					tile.character = downAnswer.answer[i];
+				}
+			}
+		}
+	}
+	const newProgress = updateWordProgress(
+		progress,
+		newTiles,
+		acrossIndex,
+		downIndex,
+	);
+	return [newTiles, newProgress];
+};
 /**
  * Auto-solve the puzzle
  * @param data crossword data
@@ -528,40 +561,40 @@ export const revealWord = (
  * @param progress current word progress
  */
 export const revealGrid = (
-    data: CrosswordData,
-    tiles: TileState[],
-    progress: WordProgress[]
+	data: CrosswordData,
+	tiles: TileState[],
+	progress: WordProgress[],
 ): [TileState[], WordProgress[]] => {
-    const newTiles = [...tiles];
-    for (let i = 0; i < newTiles.length; i++) {
-        const tile = newTiles[i];
-        const answer = data.tiles[i].character;
-        tile.character = answer;
-    }
-    const newProgress = [...progress];
-    for (const word of progress) {
-        word.correct = true;
-    }
-    return [newTiles, newProgress];
-}
+	const newTiles = [...tiles];
+	for (let i = 0; i < newTiles.length; i++) {
+		const tile = newTiles[i];
+		const answer = data.tiles[i].character;
+		tile.character = answer;
+	}
+	const newProgress = [...progress];
+	for (const word of progress) {
+		word.correct = true;
+	}
+	return [newTiles, newProgress];
+};
 /**
  * Check if the currently selected tile is correct
  * @param data crossword data
  * @param tiles crossword tile data
  */
 export const checkLetter = (
-    data: CrosswordData,
-    tiles: TileState[]
+	data: CrosswordData,
+	tiles: TileState[],
 ): TileState[] => {
-    const index = getCurrTileIndex(tiles);
-    const newTiles = [...tiles];
-    const tile = newTiles[index];
-    const answer = data.tiles[index].character;
-    if (tile.character !== "") {
-        tile.charHighlight = tile.character === answer ? "correct" : "wrong";
-    }
-    return newTiles;
-}
+	const index = getCurrTileIndex(tiles);
+	const newTiles = [...tiles];
+	const tile = newTiles[index];
+	const answer = data.tiles[index].character;
+	if (tile.character !== "") {
+		tile.charHighlight = tile.character === answer ? "correct" : "wrong";
+	}
+	return newTiles;
+};
 /**
  * Check if the currently selected tile's word is correct
  * @param data crossword data
@@ -569,92 +602,98 @@ export const checkLetter = (
  * @param direction whether to check across or down
  */
 export const checkWord = (
-    data: CrosswordData,
-    tiles: TileState[],
-    direction: WordDirection
+	data: CrosswordData,
+	tiles: TileState[],
+	direction: WordDirection,
 ) => {
-    const index = getCurrTileIndex(tiles);
-    const newTiles = [...tiles];
-    const currTile = newTiles[index];
-    const selectedTiles = direction === "across" ?
-        newTiles.map((tileData, index) => ({ tileData, index })).filter(tile => tile.tileData.acrossId === currTile.acrossId) :
-        newTiles.map((tileData, index) => ({ tileData, index })).filter(tile => tile.tileData.downId === currTile.downId);
-    for (const tile of selectedTiles) {
-        const { index } = tile;
-        const { character } = tile.tileData;
-        const answer = data.tiles[index].character;
-        if (character !== "") {
-            newTiles[index].charHighlight = character === answer ? "correct" : "wrong";
-        }
-    }
-    return newTiles;
-}
+	const index = getCurrTileIndex(tiles);
+	const newTiles = [...tiles];
+	const currTile = newTiles[index];
+	const selectedTiles =
+		direction === "across"
+			? newTiles
+					.map((tileData, index) => ({ tileData, index }))
+					.filter((tile) => tile.tileData.acrossId === currTile.acrossId)
+			: newTiles
+					.map((tileData, index) => ({ tileData, index }))
+					.filter((tile) => tile.tileData.downId === currTile.downId);
+	for (const tile of selectedTiles) {
+		const { index } = tile;
+		const { character } = tile.tileData;
+		const answer = data.tiles[index].character;
+		if (character !== "") {
+			newTiles[index].charHighlight =
+				character === answer ? "correct" : "wrong";
+		}
+	}
+	return newTiles;
+};
 /**
  * Get the appropriate response to say when user fills out entire grid
  * @param data crossword data
  * @param tiles crossword tile data
  */
 export const getGridCompletionMessage = (
-    data: CrosswordData,
-    tiles: TileState[]
+	data: CrosswordData,
+	tiles: TileState[],
 ): "correct" | "wrong" | "incomplete" => {
-    let isGridFullyFilledOut = true;
-    let isCrosswordWrong = false;
-    for (let i = 0; i < tiles.length; i++) {
-        const tile = tiles[i];
-        const tileData = data.tiles[i];
-        if (tile.tileHighlight === "background") {
-            continue;
-        }
-        if (tile.character === "") {
-            isGridFullyFilledOut = false;
-        } else {
-            if (tile.character !== tileData.character) {
-                isCrosswordWrong = true;
-            }
-        }
-    }
-    if (isGridFullyFilledOut) {
-        return isCrosswordWrong ? "wrong" : "correct";
-    }
-    return "incomplete";
-}
+	let isGridFullyFilledOut = true;
+	let isCrosswordWrong = false;
+	for (let i = 0; i < tiles.length; i++) {
+		const tile = tiles[i];
+		const tileData = data.tiles[i];
+		if (tile.tileHighlight === "background") {
+			continue;
+		}
+		if (tile.character === "") {
+			isGridFullyFilledOut = false;
+		} else {
+			if (tile.character !== tileData.character) {
+				isCrosswordWrong = true;
+			}
+		}
+	}
+	if (isGridFullyFilledOut) {
+		return isCrosswordWrong ? "wrong" : "correct";
+	}
+	return "incomplete";
+};
 /**
  * Delete tile character from selected tile
  * @param tiles crossword tile data
  */
-export const deleteTileChar = (
-    tiles: TileState[]
-) => {
-    const index = getCurrTileIndex(tiles);
-    const newTiles = [...tiles];
-    newTiles[index].character = "";
-    return newTiles;
-}
+export const deleteTileChar = (tiles: TileState[]) => {
+	const index = getCurrTileIndex(tiles);
+	const newTiles = [...tiles];
+	newTiles[index].character = "";
+	return newTiles;
+};
 /**
  * Cycle through hints to highlight the next one
  * @param hints current state of crossword hints
  */
-export const cycleHintHighlight = (
-    hints: HintState[],
-): HintState => {
-    const selectedHintIndex = hints.findIndex(hint => hint.highlight);
-    const selectedHint = hints[selectedHintIndex];
-    const acrossHints = hints.filter(hint => hint.direction === "across");
-    const downHints = hints.filter(hint => hint.direction === "down");
-    if (selectedHint.direction === "across") {
-        const indexInAcrossHints = acrossHints.findIndex(hint => hint.hint === selectedHint.hint);
-        if (indexInAcrossHints < acrossHints.length - 1) {
-            return acrossHints[indexInAcrossHints + 1];
-        } else {
-            return downHints[0];        
-        }
-    } else {
-        const indexInDownHints = downHints.findIndex(hint => hint.hint === selectedHint.hint);
-        if (indexInDownHints < downHints.length - 1) {
-            return downHints[indexInDownHints + 1];
-        } else {
-            return acrossHints[0];        
-        }
-    }
-}
+export const cycleHintHighlight = (hints: HintState[]): HintState => {
+	const selectedHintIndex = hints.findIndex((hint) => hint.highlight);
+	const selectedHint = hints[selectedHintIndex];
+	const acrossHints = hints.filter((hint) => hint.direction === "across");
+	const downHints = hints.filter((hint) => hint.direction === "down");
+	if (selectedHint.direction === "across") {
+		const indexInAcrossHints = acrossHints.findIndex(
+			(hint) => hint.hint === selectedHint.hint,
+		);
+		if (indexInAcrossHints < acrossHints.length - 1) {
+			return acrossHints[indexInAcrossHints + 1];
+		} else {
+			return downHints[0];
+		}
+	} else {
+		const indexInDownHints = downHints.findIndex(
+			(hint) => hint.hint === selectedHint.hint,
+		);
+		if (indexInDownHints < downHints.length - 1) {
+			return downHints[indexInDownHints + 1];
+		} else {
+			return acrossHints[0];
+		}
+	}
+};

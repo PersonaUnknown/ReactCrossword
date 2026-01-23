@@ -20,4 +20,4 @@ Crossword Puzzle implementation using React and TypeScript. Some TailwindCSS is 
 [] Add CI/CD for automated testing / linting
 [x] Fix: Prevent backdrop from appearing on game won
 [x] Fix: Prevent alert from appearing multiple times on clicking backdrop
-[] Fix: Deleting with backspace and delete doesn't properly update the hints 
+[] Fix: Revealing letter(s) should adjust the color of the text
