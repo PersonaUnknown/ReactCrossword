@@ -1,15 +1,6 @@
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { MdClose } from "react-icons/md";
-import type {
-	CrosswordData,
-	CrosswordGridAction,
-	CrosswordSettings,
-	HintState,
-	TileState,
-	WordDirection,
-	WordProgress,
-} from "../../utils/types";
 import {
 	checkLetter,
 	checkWord,
@@ -31,6 +22,15 @@ import {
 	updateHintText,
 	updateWordProgress,
 } from "../../utils/crossword";
+import type {
+	CrosswordData,
+	CrosswordGridAction,
+	CrosswordSettings,
+	HintState,
+	TileState,
+	WordDirection,
+	WordProgress,
+} from "../../utils/types";
 import CrosswordHint from "./CrosswordHint";
 import CrosswordMenu from "./CrosswordMenu";
 import CrosswordSettingsButton from "./CrosswordSettingsButton";

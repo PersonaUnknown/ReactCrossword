@@ -1,4 +1,5 @@
 import { IoIosArrowForward } from "react-icons/io";
+
 /**
  * Main page, compiling list of Crossword Puzzles
  */

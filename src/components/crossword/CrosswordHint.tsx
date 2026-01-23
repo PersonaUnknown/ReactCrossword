@@ -1,5 +1,5 @@
-import type { HintState } from "../../utils/types";
 import { getHintHighlightColor, getHintTextColor } from "../../utils/crossword";
+import type { HintState } from "../../utils/types";
 
 interface Props {
 	state: HintState;

@@ -1,10 +1,10 @@
 import { twMerge } from "tailwind-merge";
-import type { TileState } from "../../utils/types";
 import {
 	getTileCharColor,
 	getTileHighlightColor,
 	LARGE_TILE_SIZE,
 } from "../../utils/crossword";
+import type { TileState } from "../../utils/types";
 
 interface Props {
 	tile: TileState;
