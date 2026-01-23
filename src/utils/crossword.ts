@@ -275,6 +275,7 @@ export const getNextTileIndex = (
  * @param index index of the selected tile
  * @param char input character
  * @param moveCursor whether to update where cursor selection should be
+ * @param errorCheckMode whether to color the tile text if the input is correct or not
  * @returns [new tile states, index of where the new cursor location]
  */
 export const typeTile = (
@@ -283,9 +284,16 @@ export const typeTile = (
     direction: WordDirection,
     index: number,
     char: string,
+    errorCheckMode: boolean
 ): [TileState[], number] => {
     const newTiles = [...tiles];
     newTiles[index].character = char;
+    if (errorCheckMode) {
+        const answer = data.tiles[index].character;
+        newTiles[index].charHighlight = newTiles[index].character === answer ? "correct" : "wrong"; 
+    } else {
+        newTiles[index].charHighlight = "none";
+    }
     const nextTileIndex = index === tiles.length - 1 ? index : getNextTileIndex(newTiles, data, direction);
     // Check if there is a valid across / down word available before final highlights
     let directionCheck = direction;

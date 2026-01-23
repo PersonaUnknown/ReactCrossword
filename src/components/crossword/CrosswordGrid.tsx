@@ -159,11 +159,12 @@ const CrosswordGrid = ({
                     currDirection,
                     typeTargetIndex, 
                     parsedChar,
+                    settings.errorCheckMode
                 );
                 const currTile = newTileStates[0][typeTargetIndex];
                 const updatedWordProgress = updateWordProgress(progress, newTileStates[0], currTile.acrossId, currTile.downId);
                 setProgress(updatedWordProgress);
-                setTileStates(recolorTiles(data, newTileStates[0], settings.errorCheckMode));
+                setTileStates(newTileStates[0]);
                 highlightHintHelper(currDirection, newTileStates[1]);
                 break;
         }
@@ -322,11 +323,13 @@ const CrosswordGrid = ({
             const newHintStates = updateHintText(progress, tileStates, hintStates, settings.errorCheckMode);
             setHintStates(newHintStates);
         }
+    }, [progress, settings]);
+    useEffect(() => {
         if (tileStates.length > 0) {
             const newTileStates = recolorTiles(data, tileStates, settings.errorCheckMode);
             setTileStates(newTileStates);
         }
-    }, [progress, settings]);
+    }, [settings]);
     return (
         <div 
             className="select-none border border-black focus:outline-0"

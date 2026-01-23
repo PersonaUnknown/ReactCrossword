@@ -13,7 +13,7 @@ interface Props {
 }
 
 /**
- * Settings button that opens a 
+ * Settings button that opens a menu to adjust how the crossword is displayed
  */
 const CrosswordSettingsButton = ({
     hasWon,
@@ -64,13 +64,6 @@ const CrosswordSettingsButton = ({
             <AnimatePresence>
                 {isOpen && (
                     <>
-                        {/* <motion.div 
-                            className="absolute inset-0 bg-[#00000080] z-10" 
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            transition={{ duration: 0.15 }}
-                        /> */}
                         <motion.div 
                             className="absolute top-5 left-1/2 -translate-x-1/2 bg-white p-4 flex flex-col justify-center w-3xs sm:w-sm z-20"
                             initial={{ opacity: 0 }}
