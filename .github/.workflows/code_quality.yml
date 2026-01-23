@@ -1,0 +1,18 @@
+name: Code quality
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install dependencies
+        run: npm install
+      - name: Run formatter
+        run: npm run biome:format
+      - name: Run biome check
+        run: npm run biome:check
