@@ -13,7 +13,7 @@ interface Props {
 const CrosswordPuzzle = ({ data }: Props) => {
 	const { title } = data;
 	return (
-		<div className="min-w-screen min-h-screen container p-6 space-y-4">
+		<div className="max-w-screen min-h-screen container p-6 space-y-2 xl:space-y-4">
 			<div>
 				<Link
 					to={{
@@ -29,7 +29,7 @@ const CrosswordPuzzle = ({ data }: Props) => {
 					/>
 					Back
 				</Link>
-				<h2 className="text-center font-bold text-4xl">{title}</h2>
+				<h2 className="text-center font-bold text-2xl xl:text-4xl">{title}</h2>
 			</div>
 			<div className="flex justify-center">
 				<CrosswordGrid data={data} />

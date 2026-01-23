@@ -1,7 +1,9 @@
 import { twMerge } from "tailwind-merge";
+import useWindowDimensions from "../../hooks/useWindowDimensions";
 import {
 	getTileCharColor,
 	getTileHighlightColor,
+	getTileSize,
 	LARGE_TILE_SIZE,
 } from "../../utils/crossword";
 import type { TileState } from "../../utils/types";
@@ -17,6 +19,8 @@ interface Props {
  */
 const CrosswordTile = ({ tile, className = "", onClick }: Props) => {
 	const { charHighlight, tileHighlight, character, cornerValue } = tile;
+	const { width } = useWindowDimensions();
+	const tileSize = getTileSize(width);
 	const backgroundColor = getTileHighlightColor(tileHighlight);
 	const textColor = getTileCharColor(charHighlight);
 	/*
@@ -31,8 +35,8 @@ const CrosswordTile = ({ tile, className = "", onClick }: Props) => {
 					className,
 				)}
 				style={{
-					width: LARGE_TILE_SIZE,
-					height: LARGE_TILE_SIZE,
+					width: tileSize,
+					height: tileSize,
 				}}
 			/>
 		);
@@ -47,8 +51,8 @@ const CrosswordTile = ({ tile, className = "", onClick }: Props) => {
 				className,
 			)}
 			style={{
-				width: LARGE_TILE_SIZE,
-				height: LARGE_TILE_SIZE,
+				width: tileSize,
+				height: tileSize,
 				backgroundColor: backgroundColor,
 			}}
 			type="button"
@@ -56,10 +60,10 @@ const CrosswordTile = ({ tile, className = "", onClick }: Props) => {
 			role="menuitem"
 			tabIndex={-1}
 		>
-			<div className="absolute text-lg top-0 left-1">
+			<div className="absolute text-sm md:text-lg top-0 left-1">
 				{cornerValue < 0 ? "" : cornerValue}
 			</div>
-			<div className="text-4xl" style={{ color: textColor }}>
+			<div className="text-xl md:text-4xl" style={{ color: textColor }}>
 				{character}
 			</div>
 		</button>

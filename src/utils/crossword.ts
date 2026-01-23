@@ -10,6 +10,8 @@ import type {
  * Config
  */
 export const LARGE_TILE_SIZE = 80;
+export const MEDIUM_TILE_SIZE = 60;
+export const SMALL_TILE_SIZE = 40;
 export const DARK_HIGHLIGHT_TILE_COLOR = "#9999FF"; // Color taken from https://www.boatloadpuzzles.com/playcrossword
 export const LIGHT_HIGHLIGHT_TILE_COLOR = "#CCCCFF"; // Color taken from https://www.boatloadpuzzles.com/playcrossword
 export const CORRECT_TEXT_COLOR = "#00d04b";
@@ -20,6 +22,18 @@ export const FIRST_ROW_TILE_CLASSES = "border-t border-r border-black";
 export const LAST_ROW_TILE_CLASSES = "border-b border-black";
 export const MIDDLE_COLUMN_TILE_CLASSES = "border-t border-r border-black";
 
+/**
+ * Get the tile size to use for crossword puzzle based on screen width
+ * @param width target screen width
+ */
+export const getTileSize = (width: number): number => {
+	if (width >= 1024) {
+		return LARGE_TILE_SIZE;
+	} else if (width >= 640) {
+		return MEDIUM_TILE_SIZE;
+	}
+	return SMALL_TILE_SIZE;
+};
 /**
  * Return appropriate Tailwind classes for crossword tile
  * @param column row index of tile

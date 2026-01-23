@@ -2,6 +2,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { MobileView } from "react-device-detect";
 import { MdClose } from "react-icons/md";
+import useWindowDimensions from "../../hooks/useWindowDimensions";
 import {
 	checkLetter,
 	checkWord,
@@ -12,9 +13,9 @@ import {
 	getArrowKeyIndex,
 	getGridCompletionMessage,
 	getTileClasses,
+	getTileSize,
 	highlightHint,
 	highlightTile,
-	LARGE_TILE_SIZE,
 	recolorTiles,
 	revealGrid,
 	revealLetter,
@@ -70,6 +71,8 @@ const CrosswordGrid = ({ data }: Props) => {
 	const activeHint = hintStates.find((hint) => hint.highlight);
 	const acrossHints = hintStates.filter((hint) => hint.direction === "across");
 	const downHints = hintStates.filter((hint) => hint.direction === "down");
+	const windowDimensions = useWindowDimensions();
+	const tileSize = getTileSize(windowDimensions.width);
 	/**
 	 * Methods / Hooks
 	 */
@@ -399,7 +402,7 @@ const CrosswordGrid = ({ data }: Props) => {
 	}, [settings]);
 	return (
 		<div
-			className="select-none border border-black focus:outline-0"
+			className="select-none border border-black focus:outline-0 w-full md:w-fit"
 			role="menu"
 			onKeyDown={onKeyDown}
 			ref={gridRef}
@@ -479,15 +482,20 @@ const CrosswordGrid = ({ data }: Props) => {
 					/>
 				</div>
 				{/* Crossword Tiles and Hints */}
-				<div className="flex flex-col md:flex-row gap-8">
+				<div
+					className="flex gap-8"
+					style={{
+						flexDirection: windowDimensions.width >= 640 ? "row" : "column",
+					}}
+				>
 					<div className="flex flex-col gap-1 leading-0">
-						<h2 className="text-lg font-bold">
+						<h2 className="text-sm md:text-lg font-bold">
 							{activeHint?.index}. {activeHint?.hint}
 						</h2>
 						<div
 							style={{
-								width: LARGE_TILE_SIZE * width,
-								height: LARGE_TILE_SIZE * height,
+								width: tileSize * width,
+								height: tileSize * height,
 							}}
 						>
 							{tileStates.map((tile, index) => {
@@ -508,10 +516,10 @@ const CrosswordGrid = ({ data }: Props) => {
 							})}
 						</div>
 					</div>
-					<div className="flex flex-col gap-2">
+					<div className="flex text-xs md:text-base flex-col gap-2 w-full">
 						{acrossHints.length > 0 && (
 							<section className="flex flex-col">
-								<h2 className="text-lg font-bold">Across</h2>
+								<h2 className="text-sm md:text-lg font-bold">Across</h2>
 								{acrossHints.map((hint, index) => {
 									const key = `across-${index}`;
 									const hintIndex = hintStates.indexOf(hint);
@@ -529,7 +537,7 @@ const CrosswordGrid = ({ data }: Props) => {
 						)}
 						{downHints.length > 0 && (
 							<section className="flex flex-col">
-								<h2 className="text-lg font-bold">Down</h2>
+								<h2 className="text-sm md:text-lg font-bold">Down</h2>
 								{downHints.map((hint, index) => {
 									const key = `down-${index}`;
 									const hintIndex = hintStates.indexOf(hint);
