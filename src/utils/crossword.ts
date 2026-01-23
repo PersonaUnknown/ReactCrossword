@@ -595,16 +595,19 @@ export const getGridCompletionMessage = (
     for (let i = 0; i < tiles.length; i++) {
         const tile = tiles[i];
         const tileData = data.tiles[i];
-        if (tile.character !== "") {
+        if (tile.tileHighlight === "background") {
+            continue;
+        }
+        if (tile.character === "") {
             isGridFullyFilledOut = false;
         } else {
             if (tile.character !== tileData.character) {
-                isCrosswordWrong = false;
+                isCrosswordWrong = true;
             }
         }
     }
     if (isGridFullyFilledOut) {
         return isCrosswordWrong ? "wrong" : "correct";
     }
-    return "wrong";
+    return "incomplete";
 }

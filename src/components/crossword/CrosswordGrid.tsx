@@ -1,7 +1,9 @@
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { FaRegFaceSmile } from "react-icons/fa6";
+import { MdClose } from "react-icons/md";
 import type { CrosswordData, CrosswordGridAction, CrosswordSettings, HintState, TileState, WordDirection, WordProgress } from "../../utils/types";
-import { checkLetter, checkWord, checkWordProgress, flipWordDirection, getArrowKeyIndex, getTileClasses, highlightHint, highlightTile, LARGE_TILE_SIZE, recolorTiles, revealGrid, revealLetter, revealWord, typeTile, updateHintText, updateWordProgress } from "../../utils/crossword";
+import { checkLetter, checkWord, checkWordProgress, flipWordDirection, getArrowKeyIndex, getGridCompletionMessage, getTileClasses, highlightHint, highlightTile, LARGE_TILE_SIZE, recolorTiles, revealGrid, revealLetter, revealWord, typeTile, updateHintText, updateWordProgress } from "../../utils/crossword";
 import CrosswordHint from "./CrosswordHint";
 import CrosswordMenu from "./CrosswordMenu";
 import CrosswordSettingsButton from "./CrosswordSettingsButton";
@@ -35,6 +37,7 @@ const CrosswordGrid = ({
     const [progress, setProgress] = useState<WordProgress[]>([]);
     const [hasWon, setHasWon] = useState<boolean>(false);
     const [inputStatus, setInputStatus] = useState<"correct" | "wrong" | "incomplete">("incomplete");
+    const [incorrectScreenSeen, setIncorrectSeen] = useState<boolean>(false);
     const [settings, setSettings] = useState<CrosswordSettings>({ 
         errorCheckMode: false
     });
@@ -116,19 +119,15 @@ const CrosswordGrid = ({
                 // TODO: Highlight next word
                 break;
             case "ArrowUp":
-                // TODO: Move up
                 onTileClick(getArrowKeyIndex(data, tileStates, "up"));
                 break;
             case "ArrowDown":
-                // TODO: Move down
                 onTileClick(getArrowKeyIndex(data, tileStates, "down"));
                 break;
             case "ArrowLeft":
-                // TODO: Move left
                 onTileClick(getArrowKeyIndex(data, tileStates, "left"));
                 break;
             case "ArrowRight":
-                // TODO: Move right
                 onTileClick(getArrowKeyIndex(data, tileStates, "right"));
                 break;
             case "Backspace":
@@ -204,11 +203,7 @@ const CrosswordGrid = ({
                 break;
         }
     }
-    /**
-     * Init crossword progress and tile data.
-     * Init starting word to highlight
-     */
-    useEffect(() => {
+    const resetCrossword = () => {
         const initHints: HintState[] = [];
         const initTiles: TileState[] = [];
         const initProgress: WordProgress[] = [];
@@ -280,6 +275,18 @@ const CrosswordGrid = ({
         setTileStates(initHighlightedTiles[0]);
         setProgress(initProgress);
         setHintStates(initHints);
+        setCanEdit(true);
+        setHasWon(false);
+        setInputStatus("incomplete");
+        setIncorrectSeen(false);
+        gridRef?.current?.focus();
+    }
+    /**
+     * Init crossword progress and tile data.
+     * Init starting word to highlight
+     */
+    useEffect(() => {
+        resetCrossword();
     }, []);
     /**
      * Check if game is complete on word progress change
@@ -291,8 +298,9 @@ const CrosswordGrid = ({
             if (hasWon) {
                 setCanEdit(false);
                 setHasWon(true);
-                // TODO: Add you won message
             }
+            const inputStatus = getGridCompletionMessage(data, tileStates);
+            setInputStatus(inputStatus);
         }
     }, [progress]);
     /**
@@ -319,130 +327,171 @@ const CrosswordGrid = ({
     }, [progress, settings]);
     return (
         <div 
-            className="p-6 pt-4 select-none border border-black relative focus:outline-0"
+            className="select-none border border-black focus:outline-0"
             role="application"
             tabIndex={0}
             onKeyDown={onKeyDown}
             ref={gridRef}
         >
+            {/* Win / Error Screen */}
             <AnimatePresence>
-                {hasWon && (
+                {(inputStatus === "correct" || (inputStatus === "wrong" && !incorrectScreenSeen)) && (
                     <motion.div
                         className="absolute inset-0 bg-[#00000080] z-10"
                     >
-                        Congratulations you won!
+                        <div className="absolute top-8 left-1/2 -translate-x-1/2 bg-white p-4 flex flex-col justify-center w-3xs sm:w-sm md:w-lg z-20">
+                            <button 
+                                type="button"
+                                className="ml-auto cursor-pointer"
+                                onClick={() => { 
+                                    setInputStatus("incomplete");
+                                    if (inputStatus === "wrong") {
+                                        setIncorrectSeen(true);
+                                    } 
+                                }}
+                            >
+                                <MdClose size={30} color="black" />
+                            </button>
+                            <h2 className="text-2xl font-bold">
+                                {inputStatus === "correct" ? 
+                                    "Congratulations! You have completed the crossword." :
+                                    "Uh oh! You have some error(s) detected."
+                                }
+                            </h2>
+                            {inputStatus === "correct" && (
+                                <nav className="space-x-4 mt-4">
+                                    <a href="/">
+                                        Home
+                                    </a>
+                                    <button 
+                                        type="button" 
+                                        className="cursor-pointer" 
+                                        onClick={resetCrossword}
+                                    >
+                                        Reset
+                                    </button>
+                                </nav>
+                            )}
+                        </div>
                     </motion.div>
                 )}
             </AnimatePresence>
-            <AnimatePresence>
-                {!hasWon && !canEdit && (
-                    <>
-                        <motion.button 
-                            className="absolute inset-0 bg-[#00000080] z-10" 
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            transition={{ duration: 0.15 }}
-                            type="button"
-                            onClick={() => { setCanEdit(true); }}
-                        />
-                    </> 
-                )}
-            </AnimatePresence>
-            <div className="flex flex-row gap-1 justify-end">
-                <CrosswordMenu 
-                    hasWon={hasWon}
-                    canEdit={canEdit}
-                    setCanEdit={setCanEdit}
-                    handleAction={handleAction}
-                />
-                <CrosswordSettingsButton
-                    hasWon={hasWon} 
-                    settings={settings}
-                    setSettings={setSettings}
-                    canEdit={canEdit}
-                    setCanEdit={setCanEdit}
-                />
+            {/* Wrapper for crossword puzzle and other menus */}
+            <div className="relative p-6 pt-4">
+                {/* Background to darken when focusing in menu */}
+                <AnimatePresence>
+                    {!hasWon && !canEdit && (
+                        <>
+                            <motion.button 
+                                className="absolute inset-0 bg-[#00000080] z-10" 
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                transition={{ duration: 0.15 }}
+                                type="button"
+                                onClick={() => { setCanEdit(true); }}
+                            />
+                        </> 
+                    )}
+                </AnimatePresence>
+                {/* Menu Navbar */}
+                <div className="flex flex-row gap-1 justify-end">
+                    <CrosswordMenu 
+                        hasWon={hasWon}
+                        canEdit={canEdit}
+                        setCanEdit={setCanEdit}
+                        handleAction={handleAction}
+                    />
+                    <CrosswordSettingsButton
+                        hasWon={hasWon} 
+                        settings={settings}
+                        setSettings={setSettings}
+                        canEdit={canEdit}
+                        setCanEdit={setCanEdit}
+                    />
+                </div>
+                {/* Crossword Tiles and Hints */}
+                <div className="flex flex-col md:flex-row gap-8">
+                    <div className="flex flex-col gap-1 leading-0">
+                        <h2 className="text-lg font-bold">{activeHint?.index}. {activeHint?.hint}</h2>
+                        <div
+                            style={{
+                                width: LARGE_TILE_SIZE * width,
+                                height: LARGE_TILE_SIZE * height
+                            }}
+                        >
+                            {tileStates.map((tile, index) => {
+                                const row = Math.floor(index / width);
+                                const column = index % width;
+                                const className = getTileClasses(row, column, height);
+                                const key = `tile-${index}`;
+                                return (
+                                    <CrosswordTile 
+                                        key={key} 
+                                        tile={tile}
+                                        className={className}
+                                        onClick={() => {
+                                            onTileClick(index);
+                                        }}
+                                    />
+                                )
+                            })}
+                        </div>
+                    </div>
+                    <div className="flex flex-col gap-2">
+                        {acrossHints.length > 0 &&
+                            <section className="flex flex-col">
+                                <h2 className="text-lg font-bold">Across</h2>
+                                {acrossHints.map((hint, index) => {
+                                    const key = `across-${index}`;
+                                    const hintIndex = hintStates.findIndex(state => state === hint);
+                                    return (
+                                        <CrosswordHint 
+                                            key={key}    
+                                            state={hint}
+                                            onClick={() => {
+                                                onHintClick("across", hintIndex);
+                                            }}
+                                        />
+                                    );
+                                })}
+                            </section>
+                        }
+                        {downHints.length > 0 &&
+                            <section className="flex flex-col">
+                                <h2 className="text-lg font-bold">Down</h2>
+                                {downHints.map((hint, index) => {
+                                    const key = `down-${index}`;
+                                    const hintIndex = hintStates.findIndex(state => state === hint);
+                                    return (
+                                        <CrosswordHint 
+                                            key={key}    
+                                            state={hint}
+                                            onClick={() => {
+                                                onHintClick("down", hintIndex);
+                                            }}
+                                        />
+                                    );
+                                })}
+                            </section>
+                        }
+                    </div>
+                </div>
             </div>
-            <div className="flex flex-col md:flex-row gap-8">
-                <div className="flex flex-col gap-1 leading-0">
-                    <h2 className="text-lg font-bold">{activeHint?.index}. {activeHint?.hint}</h2>
-                    <div
-                        style={{
-                            width: LARGE_TILE_SIZE * width,
-                            height: LARGE_TILE_SIZE * height
-                        }}
+            {hasWon && (
+                <nav className="space-x-4 px-6 pb-4">
+                    <a href="/">
+                        Home
+                    </a>
+                    <button 
+                        type="button" 
+                        className="cursor-pointer" 
+                        onClick={resetCrossword}
                     >
-                        {tileStates.map((tile, index) => {
-                            const row = Math.floor(index / width);
-                            const column = index % width;
-                            const className = getTileClasses(row, column, height);
-                            const key = `tile-${index}`;
-                            return (
-                                <CrosswordTile 
-                                    key={key} 
-                                    tile={tile}
-                                    className={className}
-                                    onClick={() => {
-                                        onTileClick(index);
-                                    }}
-                                />
-                            )
-                        })}
-                    </div>
-                </div>
-                <div className="flex flex-col gap-2">
-                    {acrossHints.length > 0 &&
-                        <section className="flex flex-col">
-                            <h2 className="text-lg font-bold">Across</h2>
-                            {acrossHints.map((hint, index) => {
-                                const key = `across-${index}`;
-                                const hintIndex = hintStates.findIndex(state => state === hint);
-                                return (
-                                    <CrosswordHint 
-                                        key={key}    
-                                        state={hint}
-                                        onClick={() => {
-                                            onHintClick("across", hintIndex);
-                                        }}
-                                    />
-                                );
-                            })}
-                        </section>
-                    }
-                    {downHints.length > 0 &&
-                        <section className="flex flex-col">
-                            <h2 className="text-lg font-bold">Down</h2>
-                            {downHints.map((hint, index) => {
-                                const key = `down-${index}`;
-                                const hintIndex = hintStates.findIndex(state => state === hint);
-                                return (
-                                    <CrosswordHint 
-                                        key={key}    
-                                        state={hint}
-                                        onClick={() => {
-                                            onHintClick("down", hintIndex);
-                                        }}
-                                    />
-                                );
-                            })}
-                        </section>
-                    }
-                </div>
-            </div>
-            {/* {progress.map((word, index) => {
-                const key = `progress-${index}`;
-                const current = word.tiles.map(tile => {
-                    const char = tileStates[tile].character;
-                    return char === "" ? "_" : char;
-                });
-                const isCorrect = word.correct ? "Correct" : "Wrong";
-                return (
-                    <div key={key}>
-                        {word.index} Current: {current} Answer: {word.answer} State: {isCorrect}
-                    </div>
-                )
-            })} */}
+                        Reset
+                    </button>
+                </nav>
+            )}
         </div>
     );
 };
