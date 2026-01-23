@@ -59,9 +59,11 @@ const CrosswordSettingsButton = ({
 		<>
 			<div className="flex justify-end">
 				<button
+					role="menu"
 					type="button"
 					className="cursor-pointer bg-white hover:bg-[#dedede] transition-colors duration-100 ease-in rounded-xl px-3 py-2"
 					onClick={openModal}
+					tabIndex={-1}
 				>
 					<IoMdSettings size={25} />
 				</button>

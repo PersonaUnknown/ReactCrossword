@@ -24,6 +24,7 @@
 		"@tailwindcss/vite": "^4.1.18",
 		"motion": "^12.24.10",
 		"react": "^19.2.0",
+		"react-device-detect": "^2.2.3",
 		"react-dom": "^19.2.0",
 		"react-icons": "^5.5.0",
 		"react-router-dom": "^7.12.0",

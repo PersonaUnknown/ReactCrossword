@@ -19,6 +19,8 @@ const CrosswordHint = ({ state, onClick }: Props) => {
 				backgroundColor: backgroundColor,
 				color: textColor,
 			}}
+			role="menuitem"
+			tabIndex={-1}
 		>
 			{index}. {hint}
 		</button>

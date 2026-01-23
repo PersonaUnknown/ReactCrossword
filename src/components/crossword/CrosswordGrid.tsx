@@ -1,5 +1,6 @@
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { MobileView } from "react-device-detect";
 import { MdClose } from "react-icons/md";
 import {
 	checkLetter,
@@ -31,6 +32,7 @@ import type {
 	WordDirection,
 	WordProgress,
 } from "../../utils/types";
+import MobileKeyboard from "../input/MobileKeyboard";
 import CrosswordHint from "./CrosswordHint";
 import CrosswordMenu from "./CrosswordMenu";
 import CrosswordSettingsButton from "./CrosswordSettingsButton";
@@ -128,6 +130,13 @@ const CrosswordGrid = ({ data }: Props) => {
 	 */
 	const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
 		const key = e.key;
+		onKeyPress(key);
+		e.preventDefault();
+	};
+	const onKeyPress = (key: string) => {
+		if (inputStatus === "wrong") {
+			return;
+		}
 		switch (key) {
 			case "Tab":
 			case "Enter": {
@@ -201,7 +210,6 @@ const CrosswordGrid = ({ data }: Props) => {
 				break;
 			}
 		}
-		e.preventDefault();
 	};
 	/**
 	 * Function handler for
@@ -329,9 +337,10 @@ const CrosswordGrid = ({ data }: Props) => {
 	 * Init crossword progress and tile data.
 	 * Init starting word to highlight
 	 */
+	// biome-ignore lint/correctness/useExhaustiveDependencies(resetCrossword): prevents function from constantly resetting progress on dependency change
 	useEffect(() => {
 		resetCrossword();
-	}, [resetCrossword]);
+	}, []);
 	/**
 	 * Check if game is complete on word progress change
 	 */
@@ -391,9 +400,10 @@ const CrosswordGrid = ({ data }: Props) => {
 	return (
 		<div
 			className="select-none border border-black focus:outline-0"
-			role="application"
+			role="menu"
 			onKeyDown={onKeyDown}
 			ref={gridRef}
+			tabIndex={0}
 		>
 			{/* Win / Error Screen */}
 			<AnimatePresence>
@@ -551,6 +561,22 @@ const CrosswordGrid = ({ data }: Props) => {
 					</button>
 				</nav>
 			)}
+			<MobileView>
+				<div className="flex justify-center pb-4 md:hidden">
+					<MobileKeyboard
+						onKeyPress={onKeyPress}
+						onBackspace={() => {
+							onKeyPress("Backspace");
+						}}
+						onEnter={() => {
+							onKeyPress("Enter");
+						}}
+						onSpace={() => {
+							onKeyPress(" ");
+						}}
+					/>
+				</div>
+			</MobileView>
 		</div>
 	);
 };

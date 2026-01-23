@@ -20,6 +20,7 @@ const CrosswordPuzzle = ({ data }: Props) => {
 						pathname: "/",
 					}}
 					className="inline-flex flex-row shrink-0 items-center group hover:underline"
+					tabIndex={-1}
 				>
 					<IoCaretBackOutline
 						size={20}

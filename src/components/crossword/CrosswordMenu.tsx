@@ -51,7 +51,9 @@ const CrosswordMenu = ({
 					isOpen && "bg-[#dedede]",
 				)}
 				type="button"
+				role="menu"
 				onClick={toggleMenu}
+				tabIndex={-1}
 			>
 				Assist
 				<IoIosArrowDown size={15} />

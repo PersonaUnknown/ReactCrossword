@@ -53,6 +53,8 @@ const CrosswordTile = ({ tile, className = "", onClick }: Props) => {
 			}}
 			type="button"
 			onClick={onClick}
+			role="menuitem"
+			tabIndex={-1}
 		>
 			<div className="absolute text-lg top-0 left-1">
 				{cornerValue < 0 ? "" : cornerValue}
