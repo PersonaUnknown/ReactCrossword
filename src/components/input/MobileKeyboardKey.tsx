@@ -19,13 +19,13 @@ const MobileKeyboardKey = ({ character, onClick }: Props) => {
 		<button
 			type="button"
 			onClick={onKeyPress}
-			className="rounded-lg bg-gray-200 text-lg p-3 cursor-pointer"
+			className="rounded-lg bg-gray-200 px-2 py-1.5 md:p-3 cursor-pointer"
 			tabIndex={-1}
 		>
-			{character === "BackSpace" && <FaBackspace size={30} />}
-			{character === "Space" && <MdSpaceBar size={30} />}
-			{character === "Return" && <MdKeyboardReturn size={30} />}
-			{isLetter && character}
+			{character === "BackSpace" && <FaBackspace size={20} />}
+			{character === "Space" && <MdSpaceBar size={20} />}
+			{character === "Return" && <MdKeyboardReturn size={20} />}
+			<p className="w-2.5">{isLetter && character}</p>
 		</button>
 	);
 };

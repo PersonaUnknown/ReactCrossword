@@ -14,7 +14,7 @@ const CrosswordHint = ({ state, onClick }: Props) => {
 		<button
 			type="button"
 			onClick={onClick}
-			className="text-start cursor-pointer p-1"
+			className="text-start cursor-pointer p-1 w-full"
 			style={{
 				backgroundColor: backgroundColor,
 				color: textColor,

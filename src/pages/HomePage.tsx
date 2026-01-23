@@ -4,6 +4,7 @@ import { IoIosArrowForward } from "react-icons/io";
  * Main page, compiling list of Crossword Puzzles
  */
 const HomePage = () => {
+	document.body.style.overflow = "auto";
 	return (
 		<div className="min-h-screen p-4 manrope space-y-2 md:space-y-4">
 			<h1 className="text-center text-2xl md:text-4xl"> Crossword Puzzles </h1>

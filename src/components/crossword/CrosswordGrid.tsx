@@ -33,6 +33,7 @@ import type {
 	WordDirection,
 	WordProgress,
 } from "../../utils/types";
+import Accordion from "../container/Accordion";
 import MobileKeyboard from "../input/MobileKeyboard";
 import CrosswordHint from "./CrosswordHint";
 import CrosswordMenu from "./CrosswordMenu";
@@ -335,6 +336,7 @@ const CrosswordGrid = ({ data }: Props) => {
 		setInputStatus("incomplete");
 		setIncorrectSeen(false);
 		gridRef?.current?.focus();
+		document.body.style.overflow = "auto";
 	}, [currDirection, tiles, words]);
 	/**
 	 * Init crossword progress and tile data.
@@ -358,6 +360,10 @@ const CrosswordGrid = ({ data }: Props) => {
 				setHasWon(true);
 			}
 			const inputStatus = getGridCompletionMessage(data, tileStates);
+			if (inputStatus !== "incomplete" || hasWon) {
+				document.body.style.overflow = "hidden";
+				window.scrollTo({ top: 0 });
+			}
 			setInputStatus(inputStatus);
 		}
 	}, [progress, canEdit]);
@@ -422,6 +428,7 @@ const CrosswordGrid = ({ data }: Props) => {
 									if (inputStatus === "wrong") {
 										setIncorrectSeen(true);
 									}
+									document.body.style.overflow = "auto";
 								}}
 							>
 								<MdClose size={30} color="black" />
@@ -461,6 +468,7 @@ const CrosswordGrid = ({ data }: Props) => {
 							type="button"
 							onClick={() => {
 								setCanEdit(true);
+								document.body.style.overflow = "auto";
 							}}
 						/>
 					)}
@@ -483,7 +491,7 @@ const CrosswordGrid = ({ data }: Props) => {
 				</div>
 				{/* Crossword Tiles and Hints */}
 				<div
-					className="flex gap-8"
+					className="flex gap-4 md:gap-8"
 					style={{
 						flexDirection: windowDimensions.width >= 640 ? "row" : "column",
 					}}
@@ -516,10 +524,25 @@ const CrosswordGrid = ({ data }: Props) => {
 							})}
 						</div>
 					</div>
+					<MobileView>
+						<div className="flex justify-center md:hidden">
+							<MobileKeyboard
+								onKeyPress={onKeyPress}
+								onBackspace={() => {
+									onKeyPress("Backspace");
+								}}
+								onEnter={() => {
+									onKeyPress("Enter");
+								}}
+								onSpace={() => {
+									onKeyPress(" ");
+								}}
+							/>
+						</div>
+					</MobileView>
 					<div className="flex text-xs md:text-base flex-col gap-2 w-full">
 						{acrossHints.length > 0 && (
-							<section className="flex flex-col">
-								<h2 className="text-sm md:text-lg font-bold">Across</h2>
+							<Accordion header="Across">
 								{acrossHints.map((hint, index) => {
 									const key = `across-${index}`;
 									const hintIndex = hintStates.indexOf(hint);
@@ -533,11 +556,10 @@ const CrosswordGrid = ({ data }: Props) => {
 										/>
 									);
 								})}
-							</section>
+							</Accordion>
 						)}
 						{downHints.length > 0 && (
-							<section className="flex flex-col">
-								<h2 className="text-sm md:text-lg font-bold">Down</h2>
+							<Accordion header="Down">
 								{downHints.map((hint, index) => {
 									const key = `down-${index}`;
 									const hintIndex = hintStates.indexOf(hint);
@@ -551,7 +573,7 @@ const CrosswordGrid = ({ data }: Props) => {
 										/>
 									);
 								})}
-							</section>
+							</Accordion>
 						)}
 					</div>
 				</div>
@@ -569,22 +591,6 @@ const CrosswordGrid = ({ data }: Props) => {
 					</button>
 				</nav>
 			)}
-			<MobileView>
-				<div className="flex justify-center pb-4 md:hidden">
-					<MobileKeyboard
-						onKeyPress={onKeyPress}
-						onBackspace={() => {
-							onKeyPress("Backspace");
-						}}
-						onEnter={() => {
-							onKeyPress("Enter");
-						}}
-						onSpace={() => {
-							onKeyPress(" ");
-						}}
-					/>
-				</div>
-			</MobileView>
 		</div>
 	);
 };

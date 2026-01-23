@@ -22,7 +22,7 @@ const MobileKeyboard = ({
 			{MobileKeyboardLayout.map((row, index) => {
 				const key = `row-${index}`;
 				return (
-					<div key={key} className={"flex gap-2 justify-center"}>
+					<div key={key} className={"flex gap-0.5 md:gap-2 justify-center"}>
 						{row.map((key) => {
 							if (key === "Space") {
 								return (
