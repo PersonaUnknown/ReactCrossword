@@ -1,9 +1,8 @@
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { FaRegFaceSmile } from "react-icons/fa6";
 import { MdClose } from "react-icons/md";
 import type { CrosswordData, CrosswordGridAction, CrosswordSettings, HintState, TileState, WordDirection, WordProgress } from "../../utils/types";
-import { checkLetter, checkWord, checkWordProgress, flipWordDirection, getArrowKeyIndex, getGridCompletionMessage, getTileClasses, highlightHint, highlightTile, LARGE_TILE_SIZE, recolorTiles, revealGrid, revealLetter, revealWord, typeTile, updateHintText, updateWordProgress } from "../../utils/crossword";
+import { checkLetter, checkWord, checkWordProgress, cycleHintHighlight, deleteTileChar, flipWordDirection, getArrowKeyIndex, getGridCompletionMessage, getTileClasses, highlightHint, highlightTile, LARGE_TILE_SIZE, recolorTiles, revealGrid, revealLetter, revealWord, typeTile, updateHintText, updateWordProgress } from "../../utils/crossword";
 import CrosswordHint from "./CrosswordHint";
 import CrosswordMenu from "./CrosswordMenu";
 import CrosswordSettingsButton from "./CrosswordSettingsButton";
@@ -116,7 +115,10 @@ const CrosswordGrid = ({
         switch (key) {
             case "Tab":
             case "Enter":
-                // TODO: Highlight next word
+                // Cycle throught hint selection
+                const nextHintToHighlight = cycleHintHighlight(hintStates);
+                const hintIndex = hintStates.findIndex(state => state === nextHintToHighlight);
+                onHintClick(nextHintToHighlight.direction, hintIndex);
                 break;
             case "ArrowUp":
                 onTileClick(getArrowKeyIndex(data, tileStates, "up"));
@@ -131,10 +133,10 @@ const CrosswordGrid = ({
                 onTileClick(getArrowKeyIndex(data, tileStates, "right"));
                 break;
             case "Backspace":
-                // TODO: Delete and move backwards
-                break;
             case "Delete":
-                // TODO: Clear and don't move selection
+                // Delete char in current tile
+                const deletedTileStates = deleteTileChar(tileStates);
+                setTileStates(deletedTileStates);
                 break;
             case " ":
                 // Flip word direction
@@ -478,6 +480,7 @@ const CrosswordGrid = ({
                     </div>
                 </div>
             </div>
+            {/* Post-game Options */}
             {hasWon && (
                 <nav className="space-x-4 px-6 pb-4">
                     <a href="/">

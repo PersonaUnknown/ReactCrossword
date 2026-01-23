@@ -200,14 +200,12 @@ export const highlightHint = (
 export const getIndexAbove = (data: CrosswordData, index: number) => {
     const { width, height, tiles } = data;
     let startIndex = index - width < 0 ? height * width + index - width : index - width;
-    console.log(startIndex);
     while (startIndex !== index) {
         if (tiles[startIndex].type === "word") {
             break;
         }
         startIndex = startIndex - width < 0 ? height * width + startIndex - width : startIndex - width;
     }
-    console.log(startIndex);
     return startIndex;
 }
 export const getIndexBelow = (data: CrosswordData, index: number) => {
@@ -585,6 +583,8 @@ export const checkWord = (
 }
 /**
  * Get the appropriate response to say when user fills out entire grid
+ * @param data crossword data
+ * @param tiles crossword tile data
  */
 export const getGridCompletionMessage = (
     data: CrosswordData,
@@ -610,4 +610,43 @@ export const getGridCompletionMessage = (
         return isCrosswordWrong ? "wrong" : "correct";
     }
     return "incomplete";
+}
+/**
+ * Delete tile character from selected tile
+ * @param tiles crossword tile data
+ */
+export const deleteTileChar = (
+    tiles: TileState[]
+) => {
+    const index = getCurrTileIndex(tiles);
+    const newTiles = [...tiles];
+    newTiles[index].character = "";
+    return newTiles;
+}
+/**
+ * Cycle through hints to highlight the next one
+ * @param hints current state of crossword hints
+ */
+export const cycleHintHighlight = (
+    hints: HintState[],
+): HintState => {
+    const selectedHintIndex = hints.findIndex(hint => hint.highlight);
+    const selectedHint = hints[selectedHintIndex];
+    const acrossHints = hints.filter(hint => hint.direction === "across");
+    const downHints = hints.filter(hint => hint.direction === "down");
+    if (selectedHint.direction === "across") {
+        const indexInAcrossHints = acrossHints.findIndex(hint => hint.hint === selectedHint.hint);
+        if (indexInAcrossHints < acrossHints.length - 1) {
+            return acrossHints[indexInAcrossHints + 1];
+        } else {
+            return downHints[0];        
+        }
+    } else {
+        const indexInDownHints = downHints.findIndex(hint => hint.hint === selectedHint.hint);
+        if (indexInDownHints < downHints.length - 1) {
+            return downHints[indexInDownHints + 1];
+        } else {
+            return acrossHints[0];        
+        }
+    }
 }
